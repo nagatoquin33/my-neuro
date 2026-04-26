@@ -1,4 +1,4 @@
-// My Neuro WebUI - 前端 JavaScript v3.3
+﻿// My Neuro WebUI - 前端 JavaScript v3.3
 
 const serviceStates = {};
 let currentLogTab = 'system-log';
@@ -43,9 +43,11 @@ const TOAST_CONFIG = {
 function showToast(message, type = 'info', duration) {
     const container = document.getElementById('toastContainer');
     if (!container) {
-        console.warn(t('common.error') + ': Toast container not found');
+        console.warn('Toast 容器不存在');
         return;
     }
+
+    // 如果 Toast 数量超过限制，移除最旧的
     const existingToasts = container.querySelectorAll('.toast');
     while (existingToasts.length >= TOAST_CONFIG.maxToasts) {
         const oldestToast = existingToasts[0];
@@ -56,9 +58,9 @@ function showToast(message, type = 'info', duration) {
     // 创建 Toast 元素
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
+
     const icon = TOAST_ICONS[type] || TOAST_ICONS.info;
-    
+
     toast.innerHTML = `
         <span class="toast-icon">${icon}</span>
         <div class="toast-content">
@@ -66,20 +68,20 @@ function showToast(message, type = 'info', duration) {
         </div>
         <button class="toast-close" onclick="event.stopPropagation(); this.parentElement.remove();">&times;</button>
     `;
-    
+
     // 点击 Toast 时立即关闭
     toast.addEventListener('click', (e) => {
         if (!e.target.classList.contains('toast-close')) {
             hideToast(toast);
         }
     });
-    
+
     // 添加到容器
     container.appendChild(toast);
-    
+
     // 使用默认持续时间（如果未指定）
     const toastDuration = duration || TOAST_CONFIG.durations[type] || TOAST_CONFIG.durations.info;
-    
+
     // 自动隐藏
     setTimeout(() => {
         hideToast(toast);
@@ -125,7 +127,6 @@ function showInfo(message, duration) {
 // 添加日志条目（仅用于系统日志）
 function addLog(message, level = 'info', logType = 'system') {
     const timestamp = new Date().toLocaleTimeString();
-    message = (typeof t === 'function') ? t(message, {defaultValue: message}) : message;
     let outputId;
 
     switch(logType) {
@@ -145,7 +146,7 @@ function addLog(message, level = 'info', logType = 'system') {
     logEntry.textContent = '[' + timestamp + '] ' + message;
     logOutput.appendChild(logEntry);
     logOutput.scrollTop = logOutput.scrollHeight;
-    
+
     // 同步到第二个面板
     syncLogToPanel2();
 }
@@ -154,24 +155,24 @@ function addLog(message, level = 'info', logType = 'system') {
 function appendNewLogs(logType, newLogs) {
     const outputId = logType + '-log-output';
     const logOutput = document.getElementById(outputId);
-    
+
     // 为每条新日志添加条目（不添加时间戳，直接使用日志文件中的时间）
     newLogs.forEach(log => {
-        const level = log.includes('错误') || log.includes('失败') || log.includes('error') || log.includes('fail') || log.includes('❌') ? 'error' :
-                     log.includes('成功') || log.includes('success') || log.includes('✅') ? 'success' :
-                     log.includes('警告') || log.includes('warning') || log.includes('⚠️') ? 'warning' : 'info';
+        const level = log.includes('错误') || log.includes('失败') || log.includes('❌') ? 'error' :
+                     log.includes('成功') || log.includes('✅') ? 'success' :
+                     log.includes('警告') || log.includes('⚠️') ? 'warning' : 'info';
         const logEntry = document.createElement('div');
         logEntry.className = 'log-entry log-' + level;
         logEntry.textContent = log;  // 直接使用日志内容，不添加额外时间戳
         logOutput.appendChild(logEntry);
     });
-    
+
     // 只有当用户已经在底部时才自动滚动到底部
     const isAtBottom = logOutput.scrollHeight - logOutput.clientHeight - logOutput.scrollTop < 50;
     if (isAtBottom) {
         logOutput.scrollTop = logOutput.scrollHeight;
     }
-    
+
     // 同步到第二个面板
     syncLogToPanel2();
 }
@@ -207,7 +208,7 @@ function switchLogTab(tabId) {
 function syncLogTabToPanel2(tabId) {
     const container2 = document.getElementById('logPanelContainer2');
     if (container2.style.display === 'none' || container2.style.display === '') return;
-    
+
     // 映射到第二个面板的 tabId
     const tabIdMap = {
         'system-log': 'system-log2',
@@ -215,15 +216,15 @@ function syncLogTabToPanel2(tabId) {
         'tool-log': 'tool-log2'
     };
     const tabId2 = tabIdMap[tabId];
-    
+
     if (tabId2) {
         // 切换第二个面板的选项卡
         document.querySelectorAll('#logPanelContainer2 .log-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('#logPanelContainer2 .log-tab').forEach(t => t.classList.remove('active'));
-        
+
         document.getElementById(tabId2).classList.add('active');
         // 找到对应的按钮并添加 active
-        const buttonText = tabId === 'system-log' ? t('dashboard.system_log') : tabId === 'pet-log' ? t('dashboard.pet_log') : t('dashboard.tool_log');
+        const buttonText = tabId === 'system-log' ? '系统日志' : tabId === 'pet-log' ? '桌宠日志' : '工具日志';
         const buttons = document.querySelectorAll('#logPanelContainer2 .log-tab');
         buttons.forEach(btn => {
             if (btn.textContent === buttonText) {
@@ -237,26 +238,26 @@ function syncLogTabToPanel2(tabId) {
 function clearCurrentLog() {
     // 如果是历史对话选项卡，调用清空 API
     if (currentLogTab === 'chat-history') {
-        if (confirm(t('logs.clear_confirm'))) {
+        if (confirm('确定要清空所有对话历史吗？此操作不可恢复！')) {
             fetch('/api/chat-history/clear', { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        showToast(t('logs.clear_success'), 'success');
+                        showToast('对话历史已清空', 'success');
                         chatHistoryState.messages = [];
                         chatHistoryState.page = 1;
                         chatHistoryState.hasMore = false;
                         chatHistoryState.total = 0;
                         renderChatHistory([]);
                     } else {
-                        showToast(t('logs.clear_failed') + '：' + data.error, 'error');
+                        showToast('清空失败：' + data.error, 'error');
                     }
                 })
-                .catch(err => showToast(t('logs.clear_failed') + '：' + err.message, 'error'));
+                .catch(err => showToast('清空失败：' + err.message, 'error'));
         }
         return;
     }
-    
+
     let outputId;
     switch(currentLogTab) {
         case 'pet-log':
@@ -269,7 +270,7 @@ function clearCurrentLog() {
             outputId = 'system-log-output';
     }
     const logOutput = document.getElementById(outputId);
-    logOutput.innerHTML = '<div class="log-entry log-info">' + t('dashboard.log_cleared') + '</div>';
+    logOutput.innerHTML = '<div class="log-entry log-info">日志已清空</div>';
 }
 
 // 拆分/合并日志窗口
@@ -277,19 +278,19 @@ function toggleLogSplit() {
     const wrapper = document.getElementById('logWrapper');
     const container2 = document.getElementById('logPanelContainer2');
     const button = document.getElementById('splitLogButton');
-    
+
     if (wrapper.classList.contains('split')) {
         // 合并
         wrapper.classList.remove('split');
         container2.style.display = 'none';
         button.classList.remove('active');
-        button.textContent = t('common.expand');
+        button.textContent = '拆分';
     } else {
         // 拆分
         wrapper.classList.add('split');
         container2.style.display = 'flex';
         button.classList.add('active');
-        button.textContent = t('common.collapse');
+        button.textContent = '合并';
         // 同步当前日志到第二个面板
         syncLogToPanel2();
     }
@@ -323,13 +324,13 @@ function clearCurrentLog2() {
     // 获取第一个面板当前的 tab 状态
     let outputId;
     const activeTab = document.querySelector('#logPanelContainer1 .log-tab.active');
-    const tabName = activeTab ? activeTab.textContent : t('dashboard.system_log');
+    const tabName = activeTab ? activeTab.textContent : '系统日志';
 
-    if (tabName === t('dashboard.pet_log')) {
+    if (tabName === '桌宠日志') {
         outputId = 'pet-log-output2';
-    } else if (tabName === t('dashboard.tool_log')) {
+    } else if (tabName === '工具日志') {
         outputId = 'tool-log-output2';
-    } else if (tabName === t('dashboard.chat_history')) {
+    } else if (tabName === '历史对话') {
         // 历史对话清空与第一个面板相同
         clearCurrentLog();
         return;
@@ -338,7 +339,7 @@ function clearCurrentLog2() {
     }
 
     const logOutput = document.getElementById(outputId);
-    logOutput.innerHTML = '<div class="log-entry log-info">' + t('dashboard.log_cleared') + '</div>';
+    logOutput.innerHTML = '<div class="log-entry log-info">日志已清空</div>';
 }
 
 // ============ 对话历史功能 ============
@@ -349,7 +350,7 @@ async function loadLastPageOfChatHistory() {
 
     chatHistoryState.isLoading = true;
     console.log('[ChatHistory] 开始加载最后一页...');
-    
+
     try {
         // 先获取第一页来确定总数
         const response = await fetch(`/api/chat-history?page=1&page_size=${chatHistoryState.pageSize}`);
@@ -364,8 +365,8 @@ async function loadLastPageOfChatHistory() {
 
         // 如果总数为 0，显示空状态
         if (data.total === 0) {
-            document.getElementById('chat-history-output').innerHTML = 
-                '<div class="log-entry log-info">' + t('logs.no_chat_history') + '</div>';
+            document.getElementById('chat-history-output').innerHTML =
+                '<div class="log-entry log-info">暂无对话记录</div>';
             chatHistoryState.messages = [];
             chatHistoryState.page = 1;
             chatHistoryState.hasMorePrev = false;
@@ -394,17 +395,17 @@ async function loadLastPageOfChatHistory() {
         renderChatHistory(chatHistoryState.messages, false, 0, 0);
         updateChatHistoryLoadMoreButton();
 
-        // 只在没有轮询时才启动，避免轮询调用时重置计时器
-        if (!chatHistoryState.pollInterval) {
+        // 在第一页时启动轮询
+        if (lastPage === 1) {
             startChatHistoryPolling();
         }
 
         console.log('[ChatHistory] 加载完成');
 
     } catch (error) {
-        console.error('[ChatHistory] load failed:', error);
+        console.error('[ChatHistory] 加载失败:', error);
         document.getElementById('chat-history-output').innerHTML =
-            `<div class="log-entry log-error">${t('logs.load_failed')}：${error.message}</div>`;
+            `<div class="log-entry log-error">加载失败：${error.message}</div>`;
     } finally {
         chatHistoryState.isLoading = false;
     }
@@ -415,11 +416,10 @@ async function loadChatHistory(page = 1, prependToTop = false) {
     if (chatHistoryState.isLoading) return;
 
     const container = document.getElementById('chat-history-output');
-    const scrollEl = container.closest('.log-container') || container;
 
     // 保存加载前的滚动位置
-    const scrollBeforeLoad = scrollEl.scrollTop;
-    const scrollHeightBeforeLoad = scrollEl.scrollHeight;
+    const scrollBeforeLoad = container.scrollTop;
+    const scrollHeightBeforeLoad = container.scrollHeight;
 
     chatHistoryState.isLoading = true;
     try {
@@ -444,7 +444,7 @@ async function loadChatHistory(page = 1, prependToTop = false) {
 
         renderChatHistory(chatHistoryState.messages, prependToTop, scrollBeforeLoad, scrollHeightBeforeLoad);
         updateChatHistoryLoadMoreButton();
-        
+
         console.log(`[ChatHistory] 加载完成，当前页：${chatHistoryState.page}, 消息总数：${chatHistoryState.messages.length}`);
 
         // 管理轮询：当不在第一页时暂停轮询
@@ -455,9 +455,9 @@ async function loadChatHistory(page = 1, prependToTop = false) {
         }
 
     } catch (error) {
-        console.error('Load chat history failed:', error);
+        console.error('加载对话历史失败:', error);
         document.getElementById('chat-history-output').innerHTML =
-            `<div class="log-entry log-error">${t('logs.load_failed')}：${error.message}</div>`;
+            `<div class="log-entry log-error">加载失败：${error.message}</div>`;
     } finally {
         chatHistoryState.isLoading = false;
     }
@@ -467,12 +467,12 @@ async function loadChatHistory(page = 1, prependToTop = false) {
 function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0, scrollHeightBeforeLoad = 0) {
     const container = document.getElementById('chat-history-output');
     const logContainer = container.closest('.log-container');
-    
+
     console.log(`[ChatHistory] renderChatHistory 调用`);
     console.log(`[ChatHistory] container 存在：${!!container}`);
     console.log(`[ChatHistory] logContainer 存在：${!!logContainer}`);
     console.log(`[ChatHistory] messages 数量：${messages ? messages.length : 'null'}`);
-    
+
     // 确保 log-container 有正确的高度限制和滚动
     if (logContainer) {
         logContainer.style.overflowY = 'auto';
@@ -481,27 +481,131 @@ function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0,
 
     if (!messages || messages.length === 0) {
         console.log('[ChatHistory] 消息为空，显示空状态');
-        container.innerHTML = '<div class="log-entry log-info">' + t('logs.no_chat_history') + '</div>';
+        container.innerHTML = '<div class="log-entry log-info">暂无对话记录</div>';
         return;
     }
 
     const htmlParts = [];
 
-    // 添加"加载更多"按钮在顶部（仅有更多时显示）
-    if (chatHistoryState.hasMorePrev) {
-        htmlParts.push(`
-            <div class="chat-load-more" id="chat-load-more-container">
-                <button id="chat-load-more-btn" onclick="loadMoreChatHistory()">` + t('logs.load_more') + `</button>
-            </div>
-        `);
-    }
+    // 添加"加载更多"按钮在顶部
+    htmlParts.push(`
+        <div class="chat-load-more" id="chat-load-more-container">
+            <button id="chat-load-more-btn" onclick="loadMoreChatHistory()" ${!chatHistoryState.hasMorePrev ? 'disabled' : ''}>
+                ${chatHistoryState.hasMorePrev ? '加载更多历史对话' : '没有更多了'}
+            </button>
+        </div>
+    `);
 
+    // 添加 CSS 样式
+    htmlParts.push(`
+        <style>
+            .chat-message {
+                margin-bottom: 10px;
+                padding: 8px 12px;
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.05);
+                min-height: 2.4em;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+            }
+            .chat-message.user {
+                background: rgba(74, 144, 217, 0.1);
+                border-left: 3px solid #4a90d9;
+            }
+            .chat-message.assistant {
+                background: rgba(212, 133, 13, 0.1);
+                border-left: 3px solid #d4850d;
+            }
+            .chat-sender {
+                font-weight: bold;
+                margin-bottom: 2px;
+                font-size: 13px;
+                display: block;
+            }
+            .chat-sender.user {
+                color: #4a90d9;
+            }
+            .chat-sender.assistant {
+                color: #d4850d;
+            }
+            .chat-content {
+                line-height: 1.5;
+                color: #e0e0e0;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                font-size: 14px;
+                max-width: 100%;
+            }
+            .chat-content img {
+                max-width: 100%;
+                border-radius: 6px;
+                margin: 8px 0;
+                cursor: pointer;
+                transition: transform 0.2s;
+                display: block;
+            }
+            .chat-content img:hover {
+                transform: scale(1.02);
+            }
+            .chat-load-more {
+                text-align: center;
+                padding: 12px;
+            }
+            .chat-load-more button {
+                padding: 6px 16px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border: none;
+                border-radius: 6px;
+                color: white;
+                cursor: pointer;
+                font-size: 13px;
+            }
+            .chat-load-more button:disabled {
+                background: #555;
+                cursor: not-allowed;
+                font-size: 13px;
+            }
+            /* 工具调用样式 */
+            .chat-tool-calls {
+                margin: 8px 0;
+                padding: 8px;
+                background: rgba(102, 126, 234, 0.1);
+                border-radius: 6px;
+                border-left: 3px solid #667eea;
+            }
+            .chat-tool-call {
+                margin: 4px 0;
+                padding: 4px;
+            }
+            .chat-tool-name {
+                font-weight: bold;
+                color: #667eea;
+                font-size: 13px;
+                margin-bottom: 4px;
+            }
+            .chat-tool-args {
+                font-family: monospace;
+                font-size: 12px;
+                color: #a0a0a0;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                background: rgba(0, 0, 0, 0.2);
+                padding: 4px 8px;
+                border-radius: 4px;
+            }
+            /* 确保 chat-history-output 容器内的内容不会撑开父容器 */
+            #chat-history-output {
+                max-width: 100%;
+            }
+        </style>
+    `);
 
     // 遍历消息（保持原顺序：旧→新）
     messages.forEach((msg) => {
         const role = msg.role === 'user' ? 'user' : 'assistant';
-        const senderName = role === 'user' ? t('logs.user') : t('logs.ai');
-        
+        const senderName = role === 'user' ? '用户' : 'AI';
+
         let contentHtml = '';
 
         // 处理工具调用
@@ -512,7 +616,7 @@ function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0,
                 const functionArgs = tool.function?.arguments || '{}';
                 contentHtml += `
                     <div class="chat-tool-call">
-                        <div class="chat-tool-name">🔧 ${t('logs.tool_call')}：${escapeHtml(functionName)}</div>
+                        <div class="chat-tool-name">🔧 调用工具：${escapeHtml(functionName)}</div>
                         <div class="chat-tool-args">${escapeHtml(functionArgs)}</div>
                     </div>
                 `;
@@ -526,21 +630,21 @@ function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0,
                 // content 是数组格式（多模态消息）
                 msg.content.forEach(item => {
                     if (item.type === 'text') {
-                        let text = escapeHtml(item.text || '').replace(/\n+/g, ' ');
+                        let text = escapeHtml(item.text || '');
                         text = renderBase64Images(text);
                         contentHtml += `<div class="chat-content">${text}</div>`;
                     } else if (item.type === 'image_url') {
                         const imageUrl = item.image_url?.url || '';
                         if (imageUrl.startsWith('data:image/')) {
-                            contentHtml += `<img src="${imageUrl}" alt="${t('common.image')}" onclick="previewImage(this.src)" style="max-width: 100%; border-radius: 6px; margin: 8px 0; cursor: pointer;">`;
+                            contentHtml += `<img src="${imageUrl}" alt="图片" onclick="previewImage(this.src)" style="max-width: 100%; border-radius: 6px; margin: 8px 0; cursor: pointer;">`;
                         } else {
-                            contentHtml += `<img src="${imageUrl}" alt="${t('common.image')}" onclick="previewImage(this.src)" style="max-width: 100%; border-radius: 6px; margin: 8px 0; cursor: pointer;">`;
+                            contentHtml += `<img src="${imageUrl}" alt="图片" onclick="previewImage(this.src)" style="max-width: 100%; border-radius: 6px; margin: 8px 0; cursor: pointer;">`;
                         }
                     }
                 });
             } else {
                 // content 是字符串格式
-                let content = escapeHtml(msg.content || '').replace(/\n+/g, ' ');
+                let content = escapeHtml(msg.content || '');
                 content = renderBase64Images(content);
                 contentHtml += `<div class="chat-content">${content}</div>`;
             }
@@ -548,14 +652,14 @@ function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0,
 
         htmlParts.push(`
             <div class="chat-message ${role}">
-                <span class="chat-sender ${role}">${senderName}</span>
-                <span class="chat-content">${contentHtml}</span>
+                <div class="chat-sender ${role}">${senderName}</div>
+                ${contentHtml}
             </div>
         `);
     });
 
     container.innerHTML = htmlParts.join('');
-    
+
     console.log(`[ChatHistory] HTML 已渲染，总长度：${htmlParts.join('').length}`);
 
     // 同步到第二个面板
@@ -564,15 +668,25 @@ function renderChatHistory(messages, prependToTop = false, scrollBeforeLoad = 0,
     // 滚动位置处理 - 使用延迟确保内容完全渲染
     // 切换选项卡时需要等待 DOM 和样式完全应用
     setTimeout(() => {
-        const scrollEl = logContainer || container;
         if (prependToTop) {
-            const newScrollHeight = scrollEl.scrollHeight;
+            // 加载更多时，计算新内容的高度并恢复滚动位置
+            const newScrollHeight = container.scrollHeight;
             const heightDiff = newScrollHeight - scrollHeightBeforeLoad;
-            scrollEl.scrollTop = scrollBeforeLoad + heightDiff;
+            container.scrollTop = scrollBeforeLoad + heightDiff;
+            console.log(`[ChatHistory] 加载更多，恢复滚动位置：${container.scrollTop}`);
         } else {
-            scrollEl.scrollTop = scrollEl.scrollHeight;
+            // 初始加载或刷新时，滚动到底部（最新对话）
+            // 使用 scrollHeight 确保滚动到最底部
+            const targetScroll = container.scrollHeight;
+            container.scrollTop = targetScroll;
+            console.log(`[ChatHistory] 滚动到底部：${targetScroll}, 实际滚动位置：${container.scrollTop}`);
+
+            // 验证滚动是否成功
+            setTimeout(() => {
+                console.log(`[ChatHistory] 验证滚动位置：${container.scrollTop} / ${container.scrollHeight}`);
+            }, 200);
         }
-    }, 50);
+    }, 300);
 }
 
 // HTML 转义函数
@@ -587,7 +701,7 @@ function renderBase64Images(content) {
     // 匹配 data:image/jpeg;base64, 开头的图片
     const imageRegex = /data:image\/jpeg;base64,[A-Za-z0-9+/=]+/g;
     return content.replace(imageRegex, (match) => {
-        return `<img src="${match}" alt="${t('common.image')}" onclick="previewImage(this.src)">`;
+        return `<img src="${match}" alt="图片" onclick="previewImage(this.src)">`;
     });
 }
 
@@ -607,7 +721,7 @@ function previewImage(src) {
         align-items: center;
         cursor: pointer;
     `;
-    
+
     const img = document.createElement('img');
     img.src = src;
     img.style.cssText = `
@@ -615,7 +729,7 @@ function previewImage(src) {
         max-height: 98%;
         object-fit: contain;
     `;
-    
+
     overlay.appendChild(img);
     overlay.onclick = () => overlay.remove();
     document.body.appendChild(overlay);
@@ -629,22 +743,28 @@ function loadMoreChatHistory() {
     // 加载上一页的内容（更早的历史），前置到顶部
     const prevPage = chatHistoryState.page - 1;
     if (prevPage < 1) return;
-    
+
     loadChatHistory(prevPage, true);  // true 表示前置到顶部
 }
 
 // 更新加载更多按钮状态
 function updateChatHistoryLoadMoreButton() {
-    const container = document.getElementById('chat-load-more-container');
-    if (container) container.style.display = chatHistoryState.hasMorePrev ? '' : 'none';
+    const btn = document.getElementById('chat-load-more-btn');
+    if (btn) {
+        btn.disabled = !chatHistoryState.hasMorePrev;
+        btn.textContent = chatHistoryState.hasMorePrev ? '加载更多历史对话' : '没有更多了';
+    }
 }
 
 // 启动对话历史轮询
 function startChatHistoryPolling() {
     stopChatHistoryPolling();
     chatHistoryState.pollInterval = setInterval(() => {
-        if (!chatHistoryState.isLoading) {
-            loadLastPageOfChatHistory();
+        // 只在当前显示历史对话选项卡时轮询，且只在第一页（最新对话）时更新
+        const isChatHistoryActive = document.getElementById('chat-history')?.classList.contains('active');
+        if (isChatHistoryActive && chatHistoryState.messages.length > 0 && chatHistoryState.page === 1) {
+            // 轮询时重新加载第一页，保持最新对话
+            loadChatHistory(1, false);
         }
     }, 2000);
 }
@@ -657,8 +777,39 @@ function stopChatHistoryPolling() {
     }
 }
 
+// 同步日志到第二个面板
 function syncLogToPanel2() {
-    // 右侧面板现在只显示历史对话，无需同步日志
+    const container2 = document.getElementById('logPanelContainer2');
+    if (container2.style.display === 'none' || container2.style.display === '') return;
+
+    // 同步系统日志
+    const systemLog1 = document.getElementById('system-log-output');
+    const systemLog2 = document.getElementById('system-log-output2');
+    systemLog2.innerHTML = systemLog1.innerHTML;
+
+    // 同步桌宠日志
+    const petLog1 = document.getElementById('pet-log-output');
+    const petLog2 = document.getElementById('pet-log-output2');
+    petLog2.innerHTML = petLog1.innerHTML;
+
+    // 同步工具日志
+    const toolLog1 = document.getElementById('tool-log-output');
+    const toolLog2 = document.getElementById('tool-log-output2');
+    toolLog2.innerHTML = toolLog1.innerHTML;
+
+    // 同步对话历史
+    const chatHistory1 = document.getElementById('chat-history-output');
+    const chatHistory2 = document.getElementById('chat-history-output2');
+    if (chatHistory2) {
+        chatHistory2.innerHTML = chatHistory1.innerHTML;
+    }
+
+    // 同步滚动位置
+    const activePanel1 = document.querySelector('#logPanelContainer1 .log-panel.active .log-container');
+    const activePanel2 = document.querySelector('#logPanelContainer2 .log-panel.active .log-container');
+    if (activePanel1 && activePanel2) {
+        activePanel2.scrollTop = activePanel1.scrollTop;
+    }
 }
 
 // 加载日志（增量更新）
@@ -670,16 +821,16 @@ async function loadLogs(logType) {
             if (data.logs && data.logs.length > 0) {
                 const outputId = logType + '-log-output';
                 const logOutput = document.getElementById(outputId);
-                
+
                 // 检查日志数量是否变化
                 const currentCount = logType === 'pet' ? lastPetLogCount : lastToolLogCount;
                 const newCount = data.logs.length;
-                
+
                 // 只有当日志数量增加时才添加新日志
                 if (newCount > currentCount) {
                     const newLogs = data.logs.slice(currentCount);  // 只取新增的日志
                     appendNewLogs(logType, newLogs);
-                    
+
                     // 更新计数
                     if (logType === 'pet') {
                         lastPetLogCount = newCount;
@@ -706,7 +857,7 @@ async function loadLogs(logType) {
             }
         }
     } catch (error) {
-        console.error('Load logs failed:', error);
+        console.error('加载日志失败:', error);
     }
 }
 
@@ -755,160 +906,135 @@ function toggleApiKeyVisibility() {
 // 更新服务状态
 function updateServiceStatus(serviceName, status) {
     serviceStates[serviceName] = status;
-
-    // live2d 使用单一切换按钮
-    if (serviceName === 'live2d') {
-        const toggleBtn = document.getElementById('live2d-toggle');
-        if (toggleBtn) {
-            if (status === 'running') {
-                toggleBtn.textContent = t('dashboard.stop');
-                toggleBtn.classList.add('running');
-            } else {
-                toggleBtn.textContent = t('dashboard.start');
-                toggleBtn.classList.remove('running');
-            }
-        }
-        return;
-    }
-
     const statusElement = document.getElementById(serviceName + '-status');
     const startBtn = document.getElementById(serviceName + '-start');
     const stopBtn = document.getElementById(serviceName + '-stop');
     const restartBtn = document.getElementById(serviceName + '-restart');
 
     if (status === 'running') {
-        if (statusElement) statusElement.className = 'status running';
+        statusElement.className = 'status running';
         if (startBtn) startBtn.disabled = true;
         if (stopBtn) stopBtn.disabled = false;
-        if (restartBtn) restartBtn.disabled = false;
+        if (restartBtn) restartBtn && (restartBtn.disabled = false);
     } else {
-        if (statusElement) statusElement.className = 'status stopped';
+        statusElement.className = 'status stopped';
         if (startBtn) startBtn.disabled = false;
         if (stopBtn) stopBtn.disabled = true;
-        if (restartBtn) restartBtn.disabled = true;
-    }
-}
-
-// Live2D 启动/关闭切换
-async function toggleLive2dService() {
-    if (serviceStates['live2d'] === 'running') {
-        await stopService('live2d');
-    } else {
-        await startService('live2d');
+        if (restartBtn) restartBtn && (restartBtn.disabled = true);
     }
 }
 
 // 启动服务
 async function startService(serviceName) {
     try {
-        addLog(t('services.starting') + ' ' + serviceName + ' ' + t('services.service_suffix'), 'info', 'system');
+        addLog('正在启动 ' + serviceName + ' 服务...', 'info', 'system');
         const response = await fetch('/api/start/' + serviceName, { method: 'POST' });
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             updateServiceStatus(serviceName, 'running');
-            addLog(serviceName + ' ' + t('services.start_success'), 'success', 'system');
+            addLog(serviceName + ' 服务启动成功', 'success', 'system');
         } else {
-            addLog(serviceName + ' ' + t('services.start_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog(serviceName + ' 服务启动失败：' + (result.error || '未知错误'), 'error', 'system');
         }
     } catch (error) {
-        addLog(serviceName + ' ' + t('services.start_error') + '：' + error.message, 'error', 'system');
+        addLog(serviceName + ' 服务启动异常：' + error.message, 'error', 'system');
     }
 }
 
 // 停止服务
 async function stopService(serviceName) {
     try {
-        addLog(t('services.stopping') + ' ' + serviceName + ' ' + t('services.service_suffix'), 'warning', 'system');
+        addLog('正在停止 ' + serviceName + ' 服务...', 'warning', 'system');
         const response = await fetch('/api/stop/' + serviceName, { method: 'POST' });
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             updateServiceStatus(serviceName, 'stopped');
-            addLog(serviceName + ' ' + t('services.stop_success'), 'info', 'system');
+            addLog(serviceName + ' 服务已停止', 'info', 'system');
         } else {
-            addLog(serviceName + ' ' + t('services.stop_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog(serviceName + ' 服务停止失败：' + (result.error || '未知错误'), 'error', 'system');
         }
     } catch (error) {
-        addLog(serviceName + ' ' + t('services.stop_error') + '：' + error.message, 'error', 'system');
+        addLog(serviceName + ' 服务停止异常：' + error.message, 'error', 'system');
     }
 }
 
 // 重启服务（仅 Live2D）
 async function restartService(serviceName) {
     try {
-        addLog(t('services.restarting') + ' ' + serviceName + ' ' + t('services.service_suffix'), 'info', 'system');
+        addLog('正在重启 ' + serviceName + ' 服务...', 'info', 'system');
         await stopService(serviceName);
         setTimeout(function() { startService(serviceName); }, 1500);
     } catch (error) {
-        addLog(serviceName + ' ' + t('services.restart_error') + '：' + error.message, 'error', 'system');
+        addLog(serviceName + ' 服务重启异常：' + error.message, 'error', 'system');
     }
 }
 
 // 一键启动全部服务
 async function startAllServices() {
-    addLog(t('services.start_all_begin'), 'info', 'system');
+    addLog('开始一键启动全部服务...', 'info', 'system');
     const services = ['live2d', 'asr', 'tts', 'memos', 'rag', 'bert'];
     let successCount = 0;
     let failCount = 0;
-    
+
     for (const service of services) {
         if (serviceStates[service] !== 'running') {
-            addLog(t('services.starting') + ' ' + service + ' ' + t('services.service_suffix'), 'info', 'system');
+            addLog('正在启动 ' + service + ' 服务...', 'info', 'system');
             try {
                 const response = await fetch('/api/start/' + service, { method: 'POST' });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     updateServiceStatus(service, 'running');
-                    addLog(service + ' ' + t('services.start_success'), 'success', 'system');
+                    addLog(service + ' 服务启动成功', 'success', 'system');
                     successCount++;
                 } else {
-                    addLog(service + ' ' + t('services.start_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+                    addLog(service + ' 服务启动失败：' + (result.error || '未知错误'), 'error', 'system');
                     failCount++;
                 }
             } catch (error) {
-                addLog(service + ' ' + t('services.start_error') + '：' + error.message, 'error', 'system');
+                addLog(service + ' 服务启动异常：' + error.message, 'error', 'system');
                 failCount++;
             }
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
-    
-    addLog(t('services.start_all_done') + ' ' + successCount + ' ' + t('services.count_unit') + t('services.count_suffix') + ' ' + failCount + ' ' + t('services.count_unit'), 'info', 'system');
+
+    addLog('一键启动完成：成功 ' + successCount + ' 个，失败 ' + failCount + ' 个', 'info', 'system');
 }
 
 // 一键停止全部服务
 async function stopAllServices() {
-    addLog(t('services.stop_all_begin'), 'warning', 'system');
+    addLog('开始一键停止全部服务...', 'warning', 'system');
     const services = ['live2d', 'asr', 'tts', 'memos', 'rag', 'bert'];
     let successCount = 0;
     let failCount = 0;
-    
+
     for (const service of services) {
         if (serviceStates[service] === 'running') {
-            addLog(t('services.stopping') + ' ' + service + ' ' + t('services.service_suffix'), 'warning', 'system');
+            addLog('正在停止 ' + service + ' 服务...', 'warning', 'system');
             try {
                 const response = await fetch('/api/stop/' + service, { method: 'POST' });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     updateServiceStatus(service, 'stopped');
-                    addLog(service + ' ' + t('services.stop_success'), 'info', 'system');
+                    addLog(service + ' 服务已停止', 'info', 'system');
                     successCount++;
                 } else {
-                    addLog(service + ' ' + t('services.stop_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+                    addLog(service + ' 服务停止失败：' + (result.error || '未知错误'), 'error', 'system');
                     failCount++;
                 }
             } catch (error) {
-                addLog(service + ' ' + t('services.stop_error') + '：' + error.message, 'error', 'system');
+                addLog(service + ' 服务停止异常：' + error.message, 'error', 'system');
                 failCount++;
             }
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
-    
-    addLog(t('services.stop_all_done') + ' ' + successCount + ' ' + t('services.count_unit') + t('services.count_suffix') + ' ' + failCount + ' ' + t('services.count_unit'), 'info', 'system');
+
+    addLog('一键停止完成：成功 ' + successCount + ' 个，失败 ' + failCount + ' 个', 'info', 'system');
 }
 
 // 切换标签页
@@ -916,14 +1042,40 @@ function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
     document.getElementById(tabName).classList.add('active');
-    
+
     // 查找对应的按钮并添加 active 状态（兼容 event 不存在的情况）
     const targetButton = document.querySelector(`.tab-button[onclick="switchTab('${tabName}')"]`);
     if (targetButton) {
         targetButton.classList.add('active');
     }
 
-    // 保存按钮已移至各面板底部，此处不再需要动态控制
+    // 控制选项卡栏中保存按钮的显示/隐藏 - 只显示当前页面对应的按钮
+    const configSaveButtons = document.getElementById('configSaveButtons');
+    if (configSaveButtons) {
+        let buttonHTML = '';
+        switch(tabName) {
+            case 'basic-config':
+                buttonHTML = '<button class="config-save-button" onclick="saveBasicSettings()">保存配置</button>';
+                break;
+            case 'dialog-config':
+                buttonHTML = '<button class="config-save-button" onclick="saveDialogSettings()">保存配置</button>';
+                break;
+            case 'llm-config':
+                buttonHTML = '<button class="config-save-button" onclick="saveLLMConfig()">保存配置</button>';
+                break;
+            case 'voice-settings':
+                buttonHTML = '<button class="config-save-button" onclick="saveCloudSettings()">保存配置</button>';
+                break;
+            case 'ui-settings':
+                buttonHTML = '<button class="config-save-button" onclick="saveUISettings()">保存配置</button>';
+                break;
+            default:
+                // 无保存按钮的页面显示空占位，保持布局稳定
+                buttonHTML = '<div class="config-save-placeholder"></div>';
+                break;
+        }
+        configSaveButtons.innerHTML = buttonHTML;
+    }
 }
 
 // ============ 配置保存 ============
@@ -940,10 +1092,10 @@ async function saveConfig(url, data, successMsg) {
         if (response.ok && result.success) {
             addLog(successMsg, 'success', 'system');
         } else {
-            addLog(t('common.save') + t('common.error') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog('保存失败：' + (result.error || '未知错误'), 'error', 'system');
         }
     } catch (error) {
-        addLog(t('common.error') + '：' + error.message, 'error', 'system');
+        addLog('保存时出错：' + error.message, 'error', 'system');
     }
 }
 
@@ -964,15 +1116,15 @@ async function saveLLMConfig() {
         });
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('llm_config.save_success'), 'success', 'system');
-            showSuccess(t('llm_config.save_success'));
+            addLog('LLM 配置保存成功', 'success', 'system');
+            showSuccess('LLM 配置保存成功');
         } else {
-            addLog(t('llm_config.save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('llm_config.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('LLM 配置保存失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('LLM 配置保存失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('llm_config.save_error') + '：' + error.message, 'error', 'system');
-        showError(t('llm_config.save_error') + '：' + error.message);
+        addLog('LLM 配置保存时出错：' + error.message, 'error', 'system');
+        showError('LLM 配置保存时出错：' + error.message);
     }
 }
 
@@ -1002,7 +1154,7 @@ async function saveChatSettings() {
         persistent_history: document.getElementById('persistent-history').checked,
         history_file: document.getElementById('history-file').value
     };
-    await saveConfig('/api/settings/chat', settings, t('dialog_config.save_success'));
+    await saveConfig('/api/settings/chat', settings, '对话设置保存成功');
 }
 
 // 保存云端配置
@@ -1050,15 +1202,15 @@ async function saveCloudSettings() {
         });
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('cloud_config.save_success'), 'success', 'system');
-            showSuccess(t('cloud_config.save_success'));
+            addLog('云端配置保存成功', 'success', 'system');
+            showSuccess('云端配置保存成功');
         } else {
-            addLog(t('cloud_config.save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('cloud_config.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('云端配置保存失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('云端配置保存失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('cloud_config.save_error') + '：' + error.message, 'error', 'system');
-        showError(t('cloud_config.save_error') + '：' + error.message);
+        addLog('云端配置保存时出错：' + error.message, 'error', 'system');
+        showError('云端配置保存时出错：' + error.message);
     }
 }
 
@@ -1104,7 +1256,7 @@ async function loadCloudSettings() {
             document.getElementById('baidu-asr-devpid').value = baidu_asr.dev_pid || '15372';
         }
     } catch (error) {
-        console.error('Load cloud config failed:', error);
+        console.error('加载云端配置失败:', error);
     }
 }
 
@@ -1154,7 +1306,7 @@ function handleModelFileSelect(files) {
     if (files && files.length > 0) {
         selectedModelFile = files[0];
         const statusEl = document.getElementById('model-file-status');
-        statusEl.textContent = t('voice_clone.selected') + selectedModelFile.name;
+        statusEl.textContent = '已选择：' + selectedModelFile.name;
         statusEl.classList.add('has-file');
     }
 }
@@ -1164,7 +1316,7 @@ function handleAudioFileSelect(files) {
     if (files && files.length > 0) {
         selectedAudioFile = files[0];
         const statusEl = document.getElementById('audio-file-status');
-        statusEl.textContent = t('voice_clone.selected') + selectedAudioFile.name;
+        statusEl.textContent = '已选择：' + selectedAudioFile.name;
         statusEl.classList.add('has-file');
     }
 }
@@ -1229,19 +1381,19 @@ async function generateTTSBat() {
     const text = document.getElementById('voice-clone-text').value.trim();
 
     if (!selectedModelFile) {
-        showError('Please select model file (pth)');
+        showError('请先选择模型文件（pth）');
         return;
     }
     if (!selectedAudioFile) {
-        showError('Please select reference audio (wav)');
+        showError('请先选择参考音频（wav）');
         return;
     }
     if (!roleName) {
-        showError('Please enter role name');
+        showError('请输入角色名称');
         return;
     }
     if (!text) {
-        showError('Please enter reference audio text');
+        showError('请输入参考音频的文本内容');
         return;
     }
 
@@ -1262,26 +1414,22 @@ async function generateTTSBat() {
         const statusEl = document.getElementById('voice-clone-status');
 
         if (response.ok && result.success) {
-            statusEl.textContent = t('voice_clone.status_generating') + result.message;
+            statusEl.textContent = '状态：' + result.message;
             statusEl.classList.add('has-file');
             showSuccess(result.message);
         } else {
-            statusEl.textContent = t('voice_clone.status_generating') + t('common.error') + ' - ' + (result.error || t('common.unknown_error'));
-            showError(t('common.error') + '：' + (result.error || t('common.unknown_error')));
+            statusEl.textContent = '状态：生成失败 - ' + (result.error || '未知错误');
+            showError('生成失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
         const statusEl = document.getElementById('voice-clone-status');
-        statusEl.textContent = t('voice_clone.status_generating') + t('common.error') + ' - ' + error.message;
-        showError(t('common.error') + '：' + error.message);
+        statusEl.textContent = '状态：生成失败 - ' + error.message;
+        showError('生成时出错：' + error.message);
     }
 }
 
 // 页面加载完成后初始化（主初始化入口）
-document.addEventListener('DOMContentLoaded', async function() {
-    // 等待 i18next 初始化完成
-    if (window.i18nReady) {
-        try { await window.i18nReady; } catch (e) { console.error('i18n init failed:', e); }
-    }
+document.addEventListener('DOMContentLoaded', function() {
     // 初始化保存按钮状态（防止页面跳动）
     switchTab('dashboard');
 
@@ -1306,12 +1454,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 启动日志轮询
     startLogPolling();
 
-    // 右侧面板默认显示历史对话，页面加载时主动拉取
-    loadLastPageOfChatHistory();
-
     // 加载模型列表（使用 refreshModelList 函数）
     refreshModelList();
-
 
     // 加载工具列表
     refreshAllTools();
@@ -1326,9 +1470,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     lastPetLogCount = 0;
     lastToolLogCount = 0;
 
-    addLog(t('logs.webui_ready'), 'success', 'system');
+    addLog('WebUI 控制面板已就绪', 'success', 'system');
 
-    console.log(t('logs.init_complete'));
+    console.log('My Neuro WebUI 初始化完成');
 
     // 页面卸载时停止所有轮询
     window.addEventListener('beforeunload', () => {
@@ -1343,44 +1487,44 @@ document.addEventListener('DOMContentLoaded', async function() {
 // 初始化日志高度调整手柄
 function initLogResizer() {
     const resizer = document.getElementById('logResizer');
-    
+
     let isResizing = false;
     let startY;
     let startHeight = 0;
-    
+
     resizer.addEventListener('mousedown', function(e) {
         isResizing = true;
         startY = e.clientY;
-        
+
         // 获取当前主面板中活动日志容器的高度作为基准
         const activeMainContainer = document.querySelector('#logPanelContainer1 .log-panel.active .log-container');
         if (activeMainContainer) {
             startHeight = activeMainContainer.offsetHeight;
         }
-        
+
         document.body.style.cursor = 'ns-resize';
         document.body.style.userSelect = 'none';
     });
-    
+
     document.addEventListener('mousemove', function(e) {
         if (!isResizing) return;
-        
+
         const deltaY = e.clientY - startY;
         const newHeight = Math.max(100, Math.min(800, startHeight + deltaY));
-        
+
         // 统一所有主面板日志容器的高度
         const mainContainers = document.querySelectorAll('.log-container[data-log-type="main"]');
         mainContainers.forEach(container => {
             container.style.height = newHeight + 'px';
         });
-        
+
         // 同步调整第二个面板的日志容器高度
         const secondContainers = document.querySelectorAll('.log-container[data-log-type="second"]');
         secondContainers.forEach(container => {
             container.style.height = newHeight + 'px';
         });
     });
-    
+
     document.addEventListener('mouseup', function() {
         if (isResizing) {
             isResizing = false;
@@ -1398,13 +1542,13 @@ async function saveBilibiliSettings() {
         checkInterval: parseInt(document.getElementById('bilibili-check-interval').value),
         maxMessages: parseInt(document.getElementById('bilibili-max-messages').value)
     };
-    await saveConfig('/api/settings/bilibili', settings, 'Live settings saved');
+    await saveConfig('/api/settings/bilibili', settings, '直播设置保存成功');
 }
 
 // 保存当前模型
 async function saveCurrentModel() {
     const model = document.getElementById('current-model').value;
-    await saveConfig('/api/settings/current-model', { model }, t('ui_settings.model_switch_success') + model);
+    await saveConfig('/api/settings/current-model', { model }, '模型已切换为：' + model);
 }
 
 // 保存 UI 设置
@@ -1412,11 +1556,10 @@ async function saveUISettings() {
     const settings = {
         show_chat_box: document.getElementById('show-chat-box').checked,
         show_model: !document.getElementById('hide-model').checked,  // 勾选表示隐藏，所以取反
-        subtitle_labels: {
-            enabled: document.getElementById('subtitle-enabled').checked,
-            user: document.getElementById('subtitle-user').value,
-            ai: document.getElementById('subtitle-ai').value
-        }
+        model_scale: parseFloat(document.getElementById('model-scale').value),
+        subtitle_user: document.getElementById('subtitle-user').value,
+        subtitle_ai: document.getElementById('subtitle-ai').value,
+        subtitle_enabled: document.getElementById('subtitle-enabled').checked
     };
     try {
         const response = await fetch('/api/settings/ui', {
@@ -1426,15 +1569,15 @@ async function saveUISettings() {
         });
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('ui_settings.ui_save_success'), 'success', 'system');
-            showSuccess(t('ui_settings.ui_save_success'));
+            addLog('UI 设置保存成功', 'success', 'system');
+            showSuccess('UI 设置保存成功');
         } else {
-            addLog(t('ui_settings.ui_save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('ui_settings.ui_save_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('UI 设置保存失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('UI 设置保存失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('ui_settings.ui_save_error') + '：' + error.message, 'error', 'system');
-        showError(t('ui_settings.ui_save_error') + '：' + error.message);
+        addLog('UI 设置保存时出错：' + error.message, 'error', 'system');
+        showError('UI 设置保存时出错：' + error.message);
     }
 }
 
@@ -1447,7 +1590,7 @@ async function saveAutoChatSettings() {
         mood_chat_enabled: document.getElementById('mood-chat-enabled').checked,
         ai_diary_enabled: document.getElementById('ai-diary-enabled').checked
     };
-    await saveConfig('/api/settings/autochat', settings, 'Auto-chat settings saved');
+    await saveConfig('/api/settings/autochat', settings, '主动对话设置保存成功');
 }
 
 // 保存动态主动对话设置
@@ -1456,7 +1599,7 @@ async function saveMoodChatSettings() {
         enabled: document.getElementById('mood-chat-enabled').checked,
         prompt: document.getElementById('mood-chat-prompt').value
     };
-    await saveConfig('/api/settings/mood-chat', settings, 'Mood chat settings saved');
+    await saveConfig('/api/settings/mood-chat', settings, '动态主动对话设置保存成功');
 }
 
 // 保存高级设置
@@ -1470,7 +1613,7 @@ async function saveAdvancedSettings() {
         memos_similarity: parseFloat(document.getElementById('memos-similarity').value),
         auto_close_services: document.getElementById('auto-close-services').checked
     };
-    await saveConfig('/api/settings/advanced', settings, 'Advanced settings saved');
+    await saveConfig('/api/settings/advanced', settings, '高级设置保存成功');
 }
 
 // ============ 工具和模型 ============
@@ -1478,7 +1621,7 @@ async function saveAdvancedSettings() {
 // ============ 工具屋管理 ============
 
 // 当前工具选项卡
-let currentToolTab = 'mcp';
+let currentToolTab = 'fc';
 
 // 切换工具子选项卡
 function switchToolTab(tab) {
@@ -1504,7 +1647,46 @@ function switchToolTab(tab) {
 
 // 刷新所有工具列表
 async function refreshAllTools() {
+    await refreshFCTools();
     await refreshMCPTools();
+}
+
+// 刷新 Function Call 工具列表
+async function refreshFCTools() {
+    try {
+        const response = await fetch('/api/tools/list/fc');
+        if (!response.ok) {
+            console.error('FC 工具列表请求失败:', response.status);
+            return;
+        }
+
+        const data = await response.json();
+        const fcToolsList = document.getElementById('fc-tools-list');
+
+        if (!fcToolsList) {
+            console.error('fc-tools-list 元素不存在');
+            return;
+        }
+
+        fcToolsList.innerHTML = '';
+
+        const tools = data.tools || [];
+        if (tools.length === 0) {
+            fcToolsList.innerHTML = '<div class="log-entry log-info">没有找到 Function Call 工具</div>';
+            return;
+        }
+
+        tools.forEach(tool => {
+            const card = createToolCard(tool);
+            fcToolsList.appendChild(card);
+        });
+    } catch (error) {
+        console.error('获取 FC 工具列表失败:', error);
+        const fcToolsList = document.getElementById('fc-tools-list');
+        if (fcToolsList) {
+            fcToolsList.innerHTML = `<div class="log-entry log-error">加载失败：${error.message}</div>`;
+        }
+    }
 }
 
 // 刷新 MCP 工具列表
@@ -1512,23 +1694,23 @@ async function refreshMCPTools() {
     try {
         const response = await fetch('/api/tools/list/mcp');
         if (!response.ok) {
-            console.error('MCP tool list request failed:', response.status);
+            console.error('MCP 工具列表请求失败:', response.status);
             return;
         }
-        
+
         const data = await response.json();
         const mcpToolsList = document.getElementById('mcp-tools-list');
-        
+
         if (!mcpToolsList) {
-            console.error('mcp-tools-list element not found');
+            console.error('mcp-tools-list 元素不存在');
             return;
         }
-        
+
         mcpToolsList.innerHTML = '';
 
         const tools = data.tools || [];
         if (tools.length === 0) {
-            mcpToolsList.innerHTML = '<div class="log-entry log-info">' + t('tools.no_tools') + '</div>';
+            mcpToolsList.innerHTML = '<div class="log-entry log-info">没有找到 MCP 工具</div>';
             return;
         }
 
@@ -1537,10 +1719,10 @@ async function refreshMCPTools() {
             mcpToolsList.appendChild(card);
         });
     } catch (error) {
-        console.error('Get MCP tool list failed:', error);
+        console.error('获取 MCP 工具列表失败:', error);
         const mcpToolsList = document.getElementById('mcp-tools-list');
         if (mcpToolsList) {
-            mcpToolsList.innerHTML = `<div class="log-entry log-error">${t('tools.load_failed')}：${error.message}</div>`;
+            mcpToolsList.innerHTML = `<div class="log-entry log-error">加载失败：${error.message}</div>`;
         }
     }
 }
@@ -1554,15 +1736,15 @@ function createToolCard(tool, type = 'fc') {
     card.setAttribute('data-is-external', tool.is_external === true ? 'true' : 'false');
 
     const statusClass = tool.enabled ? 'enabled' : 'disabled';
-    const statusText = tool.enabled ? t('plugins.enabled') : t('plugins.disabled');
-    const toggleText = tool.enabled ? t('plugins.disable_btn') : t('plugins.enable_btn');
+    const statusText = tool.enabled ? '已启用' : '已禁用';
+    const toggleText = tool.enabled ? '禁用' : '启用';
 
     // 工具名称：使用 short_desc（来自注释第一行）
     const toolName = tool.name;
     // 简介：使用 short_desc（注释提取的简短描述）
-    const briefDesc = tool.short_desc || t('tools.no_desc');
+    const briefDesc = tool.short_desc || '无描述';
     // 完整描述：name: description 格式
-    const fullDesc = tool.name + ': ' + (tool.description || t('tools.no_desc'));
+    const fullDesc = tool.name + ': ' + (tool.description || '无详细描述');
 
     card.innerHTML = `
         <div class="tool-card-body">
@@ -1593,10 +1775,10 @@ function createToolCard(tool, type = 'fc') {
 // 切换工具详情显示
 function toggleToolDetail(event, btn) {
     event.stopPropagation();
-    
+
     const card = btn.closest('.tool-card');
     const detail = card.querySelector('.tool-card-detail');
-    
+
     if (detail.style.display === 'block') {
         detail.style.display = 'none';
         btn.textContent = '▼';
@@ -1634,32 +1816,31 @@ async function toggleTool(event, toolName, toolType) {
             // 外部 MCP 工具切换后需要刷新列表（因为名称会变化）
             if (isExternal) {
                 await refreshMCPTools();
-                addLog(t('tools.toggle_success') + ' ' + (result.enabled ? t('plugins.enabled') : t('plugins.disabled')), 'success', 'system');
+                addLog(`工具已${result.enabled ? '启用' : '禁用'}`, 'success', 'system');
             } else {
                 const newEnabled = result.enabled;
 
                 // 更新按钮文本
-                toggleBtn.textContent = newEnabled ? t('plugins.disable_btn') : t('plugins.enable_btn');
+                toggleBtn.textContent = newEnabled ? '禁用' : '启用';
 
                 // 更新状态显示（使用 tool-status-inline）
                 const statusEl = card.querySelector('.tool-status-inline');
                 if (statusEl) {
                     const statusIcon = newEnabled ? '●' : '○';
-                    const statusText = newEnabled ? t('plugins.enabled') : t('plugins.disabled');
+                    const statusText = newEnabled ? '已启用' : '已禁用';
                     statusEl.className = `tool-status-inline ${newEnabled ? 'enabled' : 'disabled'}`;
                     statusEl.textContent = `${statusIcon} ${statusText}`;
                 }
 
-                addLog(t('tools.toggle_success') + ' ' + toolName + ' ' + (newEnabled ? t('plugins.enabled') : t('plugins.disabled')), 'success', 'system');
+                addLog(`工具 ${toolName} 已${newEnabled ? '启用' : '禁用'}`, 'success', 'system');
             }
         } else {
-            addLog(t('tools.toggle_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog(`工具切换失败：${result.error || '未知错误'}`, 'error', 'system');
         }
     } catch (error) {
-        addLog(t('tools.toggle_error') + '：' + error.message, 'error', 'system');
+        addLog(`工具切换异常：${error.message}`, 'error', 'system');
     }
 }
-
 // 刷新模型列表
 async function refreshModelList() {
     try {
@@ -1670,12 +1851,15 @@ async function refreshModelList() {
             const models = data.models || [];
             const modelSelect = document.getElementById('live2d-model-select');
 
+            // 如果元素不存在，跳过
             if (!modelSelect) {
                 return;
             }
 
+            // 清空选项
             modelSelect.innerHTML = '';
 
+            // 添加模型到下拉框
             models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model;
@@ -1683,6 +1867,7 @@ async function refreshModelList() {
                 modelSelect.appendChild(option);
             });
 
+            // 读取当前模型并选中
             const currentResponse = await fetch('/api/settings/current-model');
             if (currentResponse.ok) {
                 const currentData = await currentResponse.json();
@@ -1696,32 +1881,6 @@ async function refreshModelList() {
     }
 }
 
-// 保存 Live2D 模型
-async function saveLive2DModel() {
-    try {
-        const modelName = document.getElementById('live2d-model-select').value;
-
-        const response = await fetch('/api/settings/current-model', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: modelName })
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            addLog(t('ui_settings.model_switch_success') + modelName, 'success', 'system');
-            await loadExpressionConfig();
-            await loadAllMotions();
-            addLog('Motion & expression config reloaded', 'info', 'system');
-        } else {
-            addLog(t('ui_settings.model_switch_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-        }
-    } catch (error) {
-        addLog(t('ui_settings.model_switch_failed') + '：' + error.message, 'error', 'system');
-    }
-}
-
 // ============ 游戏中心 ============
 
 // 启动 Minecraft 游戏
@@ -1729,19 +1888,19 @@ async function startMinecraftGame() {
     try {
         const response = await fetch('/api/game/minecraft/start', { method: 'POST' });
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
-            showSuccess(t('game.start_success'));
+            showSuccess('Minecraft 游戏已启动！');
         } else {
-            const errorMsg = result.error || t('services.start_failed');
+            const errorMsg = result.error || '启动失败';
             if (errorMsg.includes('开启游戏终端.bat')) {
-                showError(t('game.start_script_missing') + '开启游戏终端.bat');
+                showError('启动脚本不存在：开启游戏终端.bat');
             } else {
-                showError(t('services.start_failed') + '：' + errorMsg);
+                showError('启动失败：' + errorMsg);
             }
         }
     } catch (error) {
-        showError(t('services.start_error') + '：' + error.message);
+        showError('启动时出错：' + error.message);
     }
 }
 
@@ -1749,7 +1908,7 @@ async function startMinecraftGame() {
 
 // 添加工具调用日志的函数（供外部调用）
 function addToolLog(toolName, result) {
-    addLog(t('logs.tool_call') + '：' + toolName + ' -> ' + result, 'info', 'tool');
+    addLog('工具调用：' + toolName + ' -> ' + result, 'info', 'tool');
 }
 
 // ============ 配置加载 ============
@@ -1796,7 +1955,11 @@ async function loadSystemInfo() {
         const response = await fetch('/api/system/info');
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('neuro-version').textContent = data.neuro_version;
+            document.getElementById('webui-version').textContent = data.version;
+            // 保存启动时间戳用于计算运行时间
+            window.startTimestamp = data.start_timestamp;
+            // 立即更新一次运行时间
+            updateUptime();
         }
     } catch (error) {
         console.error('加载系统信息失败:', error);
@@ -1806,26 +1969,26 @@ async function loadSystemInfo() {
 // 更新运行时间（每秒调用）
 function updateUptime() {
     if (!window.startTimestamp) return;
-    
+
     const now = Date.now() / 1000;  // 当前时间戳（秒）
     const uptimeSeconds = Math.floor(now - window.startTimestamp);
-    
+
     const days = Math.floor(uptimeSeconds / 86400);
     const hours = Math.floor((uptimeSeconds % 86400) / 3600);
     const minutes = Math.floor((uptimeSeconds % 3600) / 60);
     const seconds = uptimeSeconds % 60;
-    
+
     let uptimeStr;
     if (days > 0) {
-        uptimeStr = `${days}${t('common.day')}${hours}${t('common.hour')}${minutes}${t('common.minute')}${seconds}${t('common.second')}`;
+        uptimeStr = `${days}天${hours}小时${minutes}分钟${seconds}秒`;
     } else if (hours > 0) {
-        uptimeStr = `${hours}${t('common.hour')}${minutes}${t('common.minute')}${seconds}${t('common.second')}`;
+        uptimeStr = `${hours}小时${minutes}分钟${seconds}秒`;
     } else if (minutes > 0) {
-        uptimeStr = `${minutes}${t('common.minute')}${seconds}${t('common.second')}`;
+        uptimeStr = `${minutes}分钟${seconds}秒`;
     } else {
-        uptimeStr = `${seconds}${t('common.second')}`;
+        uptimeStr = `${seconds}秒`;
     }
-    
+
     document.getElementById('system-uptime').textContent = uptimeStr;
 }
 
@@ -1838,16 +2001,16 @@ async function refreshPlugins() {
         if (btn) {
             const originalText = btn.textContent;
             btn.disabled = true;
-            btn.textContent = t('plugins.refreshing');
+            btn.textContent = '🔄 刷新中...';
             setTimeout(() => {
                 btn.disabled = false;
                 btn.textContent = originalText;
             }, 2000);
         }
         await loadPlugins();
-        addLog(t('plugins.refresh_success'), 'success', 'system');
+        addLog('插件列表已刷新', 'success', 'system');
     } catch (error) {
-        addLog(t('plugins.refresh_failed') + '：' + error.message, 'error', 'system');
+        addLog('刷新插件列表失败：' + error.message, 'error', 'system');
     }
 }
 
@@ -1869,7 +2032,7 @@ function switchPluginTab(tab) {
     if (targetPanel) {
         targetPanel.classList.add('active');
     }
-    
+
     // 切换时自动刷新插件列表
     loadPlugins();
 }
@@ -1882,10 +2045,10 @@ async function loadPlugins() {
             const plugins = await response.json();
             renderPlugins(plugins);
         } else {
-            addLog(t('plugins.load_failed'), 'error', 'system');
+            addLog('加载插件列表失败', 'error', 'system');
         }
     } catch (error) {
-        addLog(t('plugins.load_failed') + '：' + error.message, 'error', 'system');
+        addLog('加载插件列表时出错：' + error.message, 'error', 'system');
     }
 }
 
@@ -1920,13 +2083,13 @@ function createPluginCard(plugin) {
     card.dataset.pluginPath = plugin.plugin_path;
 
     const statusIcon = plugin.enabled ? '●' : '○';
-    const statusText = plugin.enabled ? t('plugins.enabled') : t('plugins.disabled');
+    const statusText = plugin.enabled ? '已启用' : '已禁用';
 
     card.innerHTML = `
         <div class="plugin-card-header">
             <div>
                 <h4>${plugin.display_name} <span style="font-size: 12px; opacity: 0.6;">v${plugin.version}</span></h4>
-                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.7;">${t('plugins.author')}${plugin.author}</p>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.7;">作者：${plugin.author}</p>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="plugin-status ${plugin.enabled ? 'enabled' : 'disabled'}">
@@ -1937,10 +2100,10 @@ function createPluginCard(plugin) {
         <p class="plugin-description">${plugin.description}</p>
         <div class="plugin-actions">
             <button class="btn-plugin-toggle" onclick="togglePlugin('${plugin.plugin_path}')">
-                ${plugin.enabled ? t('plugins.disable_btn') : t('plugins.enable_btn')}
+                ${plugin.enabled ? '禁用' : '启用'}
             </button>
             <button class="btn-open-config" onclick="openPluginConfig('${plugin.plugin_path}')">
-                ${plugin.has_own_config ? t('plugins.config_btn') : t('plugins.open_config')}
+                ${plugin.has_own_config ? '配置' : '打开配置'}
             </button>
         </div>
     `;
@@ -1968,19 +2131,19 @@ async function togglePlugin(pluginPath) {
                 const toggleBtn = card.querySelector('.btn-plugin-toggle');
 
                 statusEl.className = `plugin-status ${newEnabled ? 'enabled' : 'disabled'}`;
-                statusEl.innerHTML = `${newEnabled ? '●' : '○'} ${newEnabled ? t('plugins.enabled') : t('plugins.disabled')}`;
-                toggleBtn.textContent = newEnabled ? t('plugins.disable_btn') : t('plugins.enable_btn');
+                statusEl.innerHTML = `${newEnabled ? '●' : '○'} ${newEnabled ? '已启用' : '已禁用'}`;
+                toggleBtn.textContent = newEnabled ? '禁用' : '启用';
             }
 
-            addLog(t('plugins.toggle_success') + ' ' + pluginPath + ' ' + (newEnabled ? t('plugins.enabled') : t('plugins.disabled')), 'success', 'system');
+            addLog(`插件 ${pluginPath} 已${newEnabled ? '启用' : '禁用'}`, 'success', 'system');
 
             // 重新加载插件列表
             loadPlugins();
         } else {
-            addLog(t('plugins.toggle_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog('切换插件状态失败：' + (result.error || '未知错误'), 'error', 'system');
         }
     } catch (error) {
-        addLog(t('plugins.toggle_failed') + '：' + error.message, 'error', 'system');
+        addLog('切换插件状态时出错：' + error.message, 'error', 'system');
     }
 }
 
@@ -1990,13 +2153,13 @@ async function openPluginConfig(pluginPath) {
         // 首先检查插件是否有配置文件
         const pluginsResponse = await fetch('/api/plugins/list');
         if (!pluginsResponse.ok) {
-            throw new Error(t('plugins.load_failed'));
+            throw new Error('无法获取插件列表');
         }
-        
+
         const plugins = await pluginsResponse.json();
         // 使用 plugin_path 查找插件
         const plugin = plugins.find(p => p.plugin_path === pluginPath);
-        
+
         if (!plugin || !plugin.has_own_config) {
             // 如果没有配置文件，打开插件目录
             const response = await fetch('/api/plugins/open-config', {
@@ -2005,49 +2168,49 @@ async function openPluginConfig(pluginPath) {
                 body: JSON.stringify({ plugin_path: pluginPath })
             });
             const result = await response.json();
-            
+
             if (response.ok && result.success) {
                 addLog(result.message, 'success', 'system');
             } else {
-                addLog(t('plugins.config_error') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+                addLog('打开配置失败：' + (result.error || '未知错误'), 'error', 'system');
                 if (result.config_path) {
-                    addLog(t('plugins.config_path') + result.config_path, 'info', 'system');
+                    addLog(`配置路径：${result.config_path}`, 'info', 'system');
                 }
             }
             return;
         }
-        
+
         // 如果有配置文件，打开配置模态框 - 使用 display_name 作为标识符
         openPluginConfigModal(pluginPath, plugin.display_name);
     } catch (error) {
-        addLog(t('plugins.config_error_load') + '：' + error.message, 'error', 'system');
+        addLog('打开配置时出错：' + error.message, 'error', 'system');
     }
 }
 
 // 打开插件配置模态框
 function openPluginConfigModal(pluginPath, displayName) {
     // 设置模态框标题（使用 display_name 显示）
-    document.getElementById('pluginConfigModalTitle').textContent = t('plugins.config_title') + ' - ' + displayName;
-    
+    document.getElementById('pluginConfigModalTitle').textContent = `插件配置 - ${displayName}`;
+
     // 显示加载状态
     document.getElementById('pluginConfigLoading').style.display = 'block';
     document.getElementById('pluginConfigError').style.display = 'none';
     document.getElementById('pluginConfigForm').style.display = 'none';
-    
+
     // 显示模态框 - 使用 setProperty 确保覆盖 CSS 的 !important
     const modal = document.getElementById('pluginConfigModal');
     modal.style.setProperty('display', 'block', 'important');
-    
+
     // 保存当前滚动位置
     window.scrollPosition = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-    
+
     // 禁用背景滚动 - 使用纯 CSS 居中，不依赖 body 样式
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    
+
     // 保存 plugin_path 用于后续操作（如保存配置）
     window.currentPluginPath = pluginPath;
-    
+
     // 加载配置数据 - 使用 display_name 作为标识符
     loadPluginConfig(displayName);
 }
@@ -2057,10 +2220,10 @@ function closePluginConfigModal() {
     // 恢复背景滚动
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
-    
+
     // 恢复到之前的滚动位置
     window.scrollTo(0, window.scrollPosition || 0);
-    
+
     // 隐藏模态框
     document.getElementById('pluginConfigModal').style.display = 'none';
 }
@@ -2072,7 +2235,7 @@ async function checkReadmeExists(displayName) {
             method: 'GET'
         });
         const result = await response.json();
-        
+
         const readmeBtn = document.getElementById('readmeBtn');
         if (readmeBtn) {
             if (result.exists) {
@@ -2100,24 +2263,24 @@ async function checkReadmeExists(displayName) {
 // 打开插件 README 文件 - 使用 display_name 识别插件
 async function openPluginReadme() {
     if (!window.currentPluginDisplayName) {
-        showToast(t('plugins.no_open_config'), 'warning');
+        showToast('没有打开的插件配置', 'warning');
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/plugins/${encodeURIComponent(window.currentPluginDisplayName)}/readme`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
-            showToast(t('plugins.open_readme_success'), 'success');
+            showToast('已打开 README 文件', 'success');
         } else {
-            showToast(t('plugins.no_readme'), 'warning');
+            showToast('该插件没有 README.md 文件', 'warning');
         }
     } catch (error) {
-        showToast(t('plugins.readme_btn') + t('common.error'), 'error');
+        showToast('打开配置说明时出错', 'error');
     }
 }
 
@@ -2126,34 +2289,34 @@ async function loadPluginConfig(displayName) {
     try {
         const response = await fetch(`/api/plugins/${encodeURIComponent(displayName)}/config`);
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             // 隐藏加载状态，显示表单
             document.getElementById('pluginConfigLoading').style.display = 'none';
             document.getElementById('pluginConfigError').style.display = 'none';
             document.getElementById('pluginConfigForm').style.display = 'block';
-            
+
             // 保存配置键顺序（用于保持渲染和保存顺序）
             window.currentPluginConfigKeys = result.config_keys || Object.keys(result.config);
-            
+
             // 保存当前插件的 display_name 用于后续操作
             window.currentPluginDisplayName = displayName;
-            
+
             // 渲染配置表单（使用键顺序）
             renderPluginConfigForm(result.config);
-            
+
             // 检查 README 是否存在
             checkReadmeExists(displayName);
         } else {
             // 显示错误
             document.getElementById('pluginConfigLoading').style.display = 'none';
             document.getElementById('pluginConfigError').style.display = 'block';
-            document.getElementById('pluginConfigErrorText').textContent = result.error || t('plugins.config_error');
+            document.getElementById('pluginConfigErrorText').textContent = result.error || '加载配置失败';
         }
     } catch (error) {
         document.getElementById('pluginConfigLoading').style.display = 'none';
         document.getElementById('pluginConfigError').style.display = 'block';
-        document.getElementById('pluginConfigErrorText').textContent = t('plugins.config_error_load') + '：' + error.message;
+        document.getElementById('pluginConfigErrorText').textContent = '加载配置时出错：' + error.message;
     }
 }
 
@@ -2161,10 +2324,10 @@ async function loadPluginConfig(displayName) {
 function renderPluginConfigForm(config) {
     const fieldsContainer = document.getElementById('pluginConfigFields');
     fieldsContainer.innerHTML = '';
-    
+
     // 保存原始配置用于重置
     window.currentPluginConfig = JSON.parse(JSON.stringify(config));
-    
+
     // 使用从后端获取的键顺序（如果没有则使用 Object.keys）
     const keys = window.currentPluginConfigKeys || Object.keys(config);
     for (const key of keys) {
@@ -2181,9 +2344,9 @@ function createConfigField(key, field) {
     const fieldDiv = document.createElement('div');
     fieldDiv.className = 'config-field';
     fieldDiv.dataset.fieldKey = key;
-    
+
     let inputElement;
-    
+
     // 根据字段类型创建不同的输入元素
     switch (field.type) {
         case 'string':
@@ -2199,7 +2362,7 @@ function createConfigField(key, field) {
             }
             inputElement.value = field.value !== undefined ? field.value : field.default;
             break;
-            
+
         case 'int':
         case 'float':
             inputElement = document.createElement('input');
@@ -2207,13 +2370,13 @@ function createConfigField(key, field) {
             inputElement.step = field.type === 'float' ? '0.1' : '1';
             inputElement.value = field.value !== undefined ? field.value : field.default;
             break;
-            
+
         case 'bool':
             inputElement = document.createElement('input');
             inputElement.type = 'checkbox';
             inputElement.checked = field.value !== undefined ? field.value : field.default;
             break;
-            
+
         case 'object':
             // 处理嵌套对象
             fieldDiv.innerHTML = `
@@ -2221,30 +2384,30 @@ function createConfigField(key, field) {
                 <div class="field-description">${field.description || ''}</div>
                 <div class="nested-config" id="nested-${key}"></div>
             `;
-            
+
             const nestedContainer = fieldDiv.querySelector(`#nested-${key}`);
             for (const [nestedKey, nestedField] of Object.entries(field.fields || {})) {
                 const nestedFieldElement = createConfigField(nestedKey, nestedField);
                 nestedContainer.appendChild(nestedFieldElement);
             }
             return fieldDiv;
-            
+
         default:
             inputElement = document.createElement('input');
             inputElement.type = 'text';
             inputElement.value = field.value !== undefined ? field.value : field.default;
     }
-    
+
     inputElement.id = `config-${key}`;
     inputElement.name = key;
-    
+
     fieldDiv.innerHTML = `
         <h4>${field.title || key}</h4>
         <div class="field-description">${field.description || ''}</div>
     `;
-    
+
     fieldDiv.appendChild(inputElement);
-    
+
     return fieldDiv;
 }
 
@@ -2253,22 +2416,22 @@ function resetPluginConfig() {
     if (!window.currentPluginConfig || !window.currentPluginPath) {
         return;
     }
-    
+
     const config = JSON.parse(JSON.stringify(window.currentPluginConfig));
-    
+
     // 遍历所有字段，重置为默认值
     for (const [key, field] of Object.entries(config)) {
         resetFieldToDefault(key, field);
     }
-    
-    addLog(t('plugins.reset_default'), 'info', 'system');
+
+    addLog('配置已重置为默认值', 'info', 'system');
 }
 
 // 重置单个字段为默认值
 function resetFieldToDefault(key, field) {
     const input = document.getElementById(`config-${key}`);
     if (!input) return;
-    
+
     if (field.type === 'object') {
         // 递归处理嵌套字段
         for (const [nestedKey, nestedField] of Object.entries(field.fields || {})) {
@@ -2284,14 +2447,14 @@ function resetFieldToDefault(key, field) {
 // 保存插件配置（使用 display_name 作为唯一标识符）
 async function savePluginConfig() {
     if (!window.currentPluginConfig || !window.currentPluginDisplayName) {
-        addLog(t('plugins.no_open_config'), 'warning', 'system');
+        addLog('没有打开的插件配置', 'warning', 'system');
         return;
     }
-    
+
     try {
         // 收集表单数据（按照原始键顺序）
         const updatedConfig = collectConfigFormData();
-        
+
         // 使用 display_name 发送保存请求
         const response = await fetch(`/api/plugins/${encodeURIComponent(window.currentPluginDisplayName)}/config`, {
             method: 'POST',
@@ -2300,22 +2463,22 @@ async function savePluginConfig() {
             },
             body: JSON.stringify(updatedConfig)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
-            addLog(t('plugins.save_success'), 'success', 'system');
-            showSuccess(t('plugins.save_success'));
+            addLog('插件配置保存成功', 'success', 'system');
+            showSuccess('插件配置保存成功');
             closePluginConfigModal();
             // 重新加载插件列表以更新状态
             loadPlugins();
         } else {
-            addLog(t('plugins.save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('plugins.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('保存配置失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('保存配置失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('plugins.save_error') + '：' + error.message, 'error', 'system');
-        showError(t('plugins.save_error') + '：' + error.message);
+        addLog('保存配置时出错：' + error.message, 'error', 'system');
+        showError('保存配置时出错：' + error.message);
     }
 }
 
@@ -2323,14 +2486,14 @@ async function savePluginConfig() {
 function collectConfigFormData() {
     const updatedConfig = {};
     const keys = window.currentPluginConfigKeys || Object.keys(window.currentPluginConfig || {});
-    
+
     for (const key of keys) {
         const field = window.currentPluginConfig[key];
         if (!field) continue;
-        
+
         const input = document.getElementById(`config-${key}`);
         if (!input) continue;
-        
+
         // 根据字段类型收集值
         let value;
         if (field.type === 'bool') {
@@ -2363,10 +2526,10 @@ function collectConfigFormData() {
             // text, string 等类型
             value = input.value;
         }
-        
+
         updatedConfig[key] = value;
     }
-    
+
     return updatedConfig;
 }
 
@@ -2374,7 +2537,7 @@ function collectConfigFormData() {
 function updateFieldFromForm(key, field) {
     const input = document.getElementById(`config-${key}`);
     if (!input) return;
-    
+
     if (field.type === 'object') {
         // 递归处理嵌套字段
         for (const [nestedKey, nestedField] of Object.entries(field.fields || {})) {
@@ -2400,11 +2563,11 @@ function updatePluginCardButtons(plugins) {
             const configBtn = card.querySelector('.btn-open-config');
             if (configBtn) {
                 if (plugin.has_own_config) {
-                    configBtn.textContent = t('plugins.config_btn');
+                    configBtn.textContent = '配置';
                     configBtn.disabled = false;
                     configBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
                 } else {
-                    configBtn.textContent = t('plugins.no_config');
+                    configBtn.textContent = '无配置';
                     configBtn.disabled = true;
                     configBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
                 }
@@ -2434,7 +2597,7 @@ function renderPlugins(plugins) {
             communityContainer.appendChild(card);
         }
     });
-    
+
     // 更新按钮状态
     updatePluginCardButtons(plugins);
 }
@@ -2448,12 +2611,8 @@ async function saveBasicSettings() {
             show_chat_box: document.getElementById('show-chat-box').checked,
             show_model: !document.getElementById('hide-model').checked,  // 勾选表示隐藏，所以取反
             voice_barge_in: document.getElementById('voice-barge-in').checked,
-            mcp_enabled: document.getElementById('mcp-enabled').checked,
-            vision_model: {
-                api_key: document.getElementById('vision-model-api-key').value,
-                api_url: document.getElementById('vision-model-api-url').value,
-                model: document.getElementById('vision-model-name').value
-            }
+            tools_enabled: document.getElementById('tools-enabled').checked,
+            mcp_enabled: document.getElementById('mcp-enabled').checked
         };
 
         const response = await fetch('/api/settings/advanced', {
@@ -2465,15 +2624,15 @@ async function saveBasicSettings() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            addLog(t('dialog_config.save_success'), 'success', 'system');
-            showSuccess(t('dialog_config.save_success'));
+            addLog('基础配置已保存', 'success', 'system');
+            showSuccess('基础配置已保存');
         } else {
-            addLog(t('dialog_config.save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('dialog_config.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('保存基础配置失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('保存基础配置失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('dialog_config.save_error') + '：' + error.message, 'error', 'system');
-        showError(t('dialog_config.save_error') + '：' + error.message);
+        addLog('保存基础配置时出错：' + error.message, 'error', 'system');
+        showError('保存基础配置时出错：' + error.message);
     }
 }
 
@@ -2489,14 +2648,8 @@ async function loadBasicConfig() {
             _setChk('show-chat-box', config.show_chat_box === true);
             _setChk('show-model', config.show_model === true);
             _setChk('voice-barge-in', config.voice_barge_in === true);
+            _setChk('tools-enabled', config.tools_enabled === true);
             _setChk('mcp-enabled', config.mcp_enabled === true);
-
-            // 加载视觉模型配置
-            if (config.vision_model) {
-                _setVal('vision-model-api-key', config.vision_model.api_key || '');
-                _setVal('vision-model-api-url', config.vision_model.api_url || '');
-                _setVal('vision-model-name', config.vision_model.model || '');
-            }
         }
     } catch (error) {
         console.error('加载基础配置失败:', error);
@@ -2506,7 +2659,6 @@ async function loadBasicConfig() {
 // 保存对话配置
 async function saveDialogSettings() {
     try {
-        // 保存基础对话配置到 /api/settings/dialog
         const config = {
             intro_text: document.getElementById('intro-text').value,
             max_messages: parseInt(document.getElementById('max-messages').value) || 30,
@@ -2518,47 +2670,24 @@ async function saveDialogSettings() {
             show_chat_box: document.getElementById('show-chat-box').checked
         };
 
-        const response1 = await fetch('/api/settings/dialog', {
+        const response = await fetch('/api/settings/dialog', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config)
         });
 
-        // 保存高级配置到 /api/settings/advanced
-        const advancedConfig = {
-            auto_screenshot: document.getElementById('auto-screenshot').checked,
-            use_vision_model: document.getElementById('use-vision-model').checked,
-            show_chat_box: document.getElementById('show-chat-box').checked,
-            show_model: !document.getElementById('hide-model').checked,
-            voice_barge_in: document.getElementById('voice-barge-in').checked,
-            mcp_enabled: document.getElementById('mcp-enabled').checked,
-            vision_model: {
-                api_key: document.getElementById('vision-model-api-key').value,
-                api_url: document.getElementById('vision-model-api-url').value,
-                model: document.getElementById('vision-model-name').value
-            }
-        };
+        const result = await response.json();
 
-        const response2 = await fetch('/api/settings/advanced', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(advancedConfig)
-        });
-
-        const result1 = await response1.json();
-        const result2 = await response2.json();
-
-        if (response1.ok && result1.success && response2.ok && result2.success) {
-            addLog(t('dialog_config.save_success'), 'success', 'system');
-            showSuccess(t('dialog_config.save_success'));
+        if (response.ok && result.success) {
+            addLog('对话配置已保存', 'success', 'system');
+            showSuccess('对话配置已保存');
         } else {
-            const errorMsg = (result1.error || result2.error || t('common.unknown_error'));
-            addLog(t('dialog_config.save_failed') + '：' + errorMsg, 'error', 'system');
-            showError(t('dialog_config.save_failed') + '：' + errorMsg);
+            addLog('保存对话配置失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('保存对话配置失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('dialog_config.save_error') + '：' + error.message, 'error', 'system');
-        showError(t('dialog_config.save_error') + '：' + error.message);
+        addLog('保存对话配置时出错：' + error.message, 'error', 'system');
+        showError('保存对话配置时出错：' + error.message);
     }
 }
 
@@ -2568,7 +2697,7 @@ async function loadDialogConfig() {
         const response = await fetch('/api/settings/dialog');
         if (response.ok) {
             const config = await response.json();
-            document.getElementById('intro-text').value = config.intro_text || t('ui_settings.intro_placeholder');
+            document.getElementById('intro-text').value = config.intro_text || '你好啊';
             document.getElementById('max-messages').value = config.max_messages || 30;
             document.getElementById('enable-limit').checked = config.enable_limit === true;
             document.getElementById('persistent-history').checked = config.persistent_history === true;
@@ -2589,11 +2718,12 @@ async function loadUISettings() {
         if (response.ok) {
             const data = await response.json();
             console.log('loadUISettings API response:', data);
-            
+
             _setChk('show-chat-box', data.show_chat_box === true);
+            _setVal('model-scale', data.model_scale || 2.3);
             // hide-model: 勾选表示隐藏，所以取反
             _setChk('hide-model', data.show_model !== true);
-            
+
             // 处理 subtitle_labels 对象 - 支持多种数据结构
             let subtitleLabels = {};
             if (data.subtitle_labels) {
@@ -2613,12 +2743,12 @@ async function loadUISettings() {
                 };
                 console.log('Using fallback subtitle fields:', subtitleLabels);
             }
-            
+
             _setChk('subtitle-enabled', subtitleLabels.enabled === true);
             // 强制设置值，即使为空字符串
             _setVal('subtitle-user', subtitleLabels.user || '');
             _setVal('subtitle-ai', subtitleLabels.ai || '');
-            
+
             console.log('UI settings loaded successfully');
         } else {
             console.error('loadUISettings API returned non-ok status:', response.status);
@@ -2628,6 +2758,34 @@ async function loadUISettings() {
     }
 }
 
+// 保存 Live2D 模型
+async function saveLive2DModel() {
+    try {
+        const modelName = document.getElementById('live2d-model-select').value;
+
+        const response = await fetch('/api/settings/current-model', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: modelName })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            addLog(`Live2D 模型已切换为：${modelName}`, 'success', 'system');
+
+            // 自动刷新动作和表情配置
+            await loadExpressionConfig();
+            await loadAllMotions();
+
+            addLog('已重新加载动作和表情配置', 'info', 'system');
+        } else {
+            addLog('切换模型失败：' + (result.error || '未知错误'), 'error', 'system');
+        }
+    } catch (error) {
+        addLog('切换模型时出错：' + error.message, 'error', 'system');
+    }
+}
 
 // 复位皮套位置
 async function resetModelPosition() {
@@ -2641,15 +2799,15 @@ async function resetModelPosition() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            addLog(t('ui_settings.model_reset_success'), 'success', 'system');
-            showSuccess(t('ui_settings.model_reset_success'));
+            addLog('皮套位置已复位', 'success', 'system');
+            showSuccess('皮套位置已复位，请重启桌宠生效');
         } else {
-            addLog(t('ui_settings.model_reset_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
-            showError(t('ui_settings.model_reset_failed') + '：' + (result.error || t('common.unknown_error')));
+            addLog('复位皮套位置失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('复位失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        addLog(t('ui_settings.model_reset_failed') + '：' + error.message, 'error', 'system');
-        showError(t('ui_settings.model_reset_failed') + '：' + error.message);
+        addLog('复位皮套位置时出错：' + error.message, 'error', 'system');
+        showError('复位出错：' + error.message);
     }
 }
 
@@ -2681,7 +2839,7 @@ function switchMarketTab(tab) {
 async function refreshPromptMarket() {
     try {
         const listElement = document.getElementById('prompt-market-list');
-        listElement.innerHTML = '<div class="log-entry log-info">' + t('market.loading_list') + '</div>';
+        listElement.innerHTML = '<div class="log-entry log-info">正在加载提示词列表...</div>';
 
         const response = await fetch('/api/market/prompts');
         const data = await response.json();
@@ -2693,13 +2851,13 @@ async function refreshPromptMarket() {
                 listElement.appendChild(card);
             });
         } else if (data.success) {
-            listElement.innerHTML = '<div class="log-entry log-info">' + t('market.no_prompt') + '</div>';
+            listElement.innerHTML = '<div class="log-entry log-info">��无提示词</div>';
         } else {
-            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || t('market.load_failed')) + '</div>';
+            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || '加载失败') + '</div>';
         }
     } catch (error) {
         document.getElementById('prompt-market-list').innerHTML =
-            '<div class="log-entry log-error">' + t('market.load_error') + '：' + error.message + '</div>';
+            '<div class="log-entry log-error">加载出错：' + error.message + '</div>';
     }
 }
 
@@ -2708,7 +2866,7 @@ function createPromptCard(prompt) {
     const card = document.createElement('div');
     card.className = 'market-card';
 
-    const title = prompt.title || t('market.unnamed_prompt');
+    const title = prompt.title || '未命名提示词';
     const summary = prompt.summary || '';
     const prerequisites = prompt.prerequisites || '';
     const content = prompt.content || '';
@@ -2722,11 +2880,11 @@ function createPromptCard(prompt) {
     }
 
     if (prerequisites) {
-        html += `<div class="market-card-warning">⚠️ ${t('market.using_condition')}：${prerequisites}</div>`;
+        html += `<div class="market-card-warning">⚠️ 使用条件：${prerequisites}</div>`;
     }
 
     // 添加应用按钮
-    html += `<button onclick="applyPrompt('${title.replace(/'/g, "\\'")}')" class="btn-sm" style="margin-top: 10px;" data-i18n="market.apply">${t('market.apply')}</button>`;
+    html += `<button onclick="applyPrompt('${title.replace(/'/g, "\\'")}')" class="btn-sm" style="margin-top: 10px;">应用</button>`;
 
     card.innerHTML = html;
     return card;
@@ -2748,29 +2906,162 @@ async function applyPrompt(title) {
                 });
                 const res = await result.json();
                 if (res.success) {
-                    // 设置到 AI 人设输入框
-                    const promptInput = document.getElementById('system-prompt');
+                    // 设置到“人格设置”页的系统提示词输入框
+                    const promptInput = document.getElementById('persona-system-prompt') || document.getElementById('system-prompt');
                     if (promptInput) {
                         promptInput.value = res.content;
                     }
-                    showSuccess(t('market.apply_success'));
+                    if (typeof switchTab === 'function') {
+                        switchTab('persona-config');
+                    }
+                    showSuccess('提示词已应用，请在人格设置中保存');
                 } else {
-                    showError(t('market.apply_failed') + '：' + (res.error || t('common.unknown_error')));
+                    showError('应用失败：' + (res.error || '未知错误'));
                 }
             }
         }
     } catch (error) {
-        showError(t('market.apply_failed') + '：' + error.message);
+        showError('应用时出错：' + error.message);
     }
 }
 
+// 刷新工具广场
+async function refreshToolMarket() {
+    try {
+        const listElement = document.getElementById('tool-market-list');
+        listElement.innerHTML = '<div class="log-entry log-info">正在加载工具列表...</div>';
 
+        const response = await fetch('/api/market/tools');
+        const data = await response.json();
+
+        if (data.success && data.tools && data.tools.length > 0) {
+            listElement.innerHTML = '';
+            data.tools.forEach((tool) => {
+                const card = createMarketToolCard(tool);
+                listElement.appendChild(card);
+            });
+        } else if (data.success) {
+            listElement.innerHTML = '<div class="log-entry log-info">暂无工具</div>';
+        } else {
+            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || '加载���败') + '</div>';
+        }
+    } catch (error) {
+        document.getElementById('tool-market-list').innerHTML =
+            '<div class="log-entry log-error">加载出错：' + error.message + '</div>';
+    }
+}
+
+// 创建广场工具卡���
+function createMarketToolCard(tool) {
+    const card = document.createElement('div');
+    card.className = 'market-card';
+
+    const toolName = tool.tool_name || tool.name || '未命名工具';
+    const toolId = tool.id || '';
+    const fileName = tool.file_name || toolName + '.js';
+
+    // 优先使用后端返回的 download_url，如果没有则回退到用 id 构建
+    const downloadUrl = tool.download_url || (toolId ? `http://mynewbot.com/api/download-tool/${toolId}` : '');
+
+    const html = `<div class="market-card-header">
+        <h4 class="market-card-title">📦 ${toolName}</h4>
+    </div>
+    <button onclick="downloadTool('${toolName.replace(/'/g, "\\'")}', '${downloadUrl}', '${fileName}')" class="btn-sm" style="margin-top: 10px;">⬇ 下载</button>`;
+
+    card.innerHTML = html;
+    return card;
+}
+
+// 下载工具
+async function downloadTool(toolName, downloadUrl, fileName) {
+    try {
+        const result = await fetch('/api/market/tools/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tool_name: toolName,
+                download_url: downloadUrl,
+                file_name: fileName
+            })
+        });
+        const res = await result.json();
+        if (res.success) {
+            showSuccess(`工具 ${toolName} 已下载！`);
+        } else {
+            showError('下载失败：' + (res.error || '未知错误'));
+        }
+    } catch (error) {
+        showError('下载时出错：' + error.message);
+    }
+}
+
+// 刷新 FC 广场
+async function refreshFCMarket() {
+    try {
+        const listElement = document.getElementById('fc-market-list');
+        listElement.innerHTML = '<div class="log-entry log-info">正在加载 FC 工具列表...</div>';
+
+        const response = await fetch('/api/market/fc-tools');
+        const data = await response.json();
+
+        if (data.success && data.fc_tools && data.fc_tools.length > 0) {
+            listElement.innerHTML = '';
+            data.fc_tools.forEach((tool) => {
+                const card = createFCCard(tool);
+                listElement.appendChild(card);
+            });
+        } else if (data.success) {
+            listElement.innerHTML = '<div class="log-entry log-info">暂无 FC 工具</div>';
+        } else {
+            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || '加载失败') + '</div>';
+        }
+    } catch (error) {
+        document.getElementById('fc-market-list').innerHTML =
+            '<div class="log-entry log-error">加载出错：' + error.message + '</div>';
+    }
+}
+
+// 创建 FC 工具卡片
+function createFCCard(tool) {
+    const card = document.createElement('div');
+    card.className = 'market-card';
+
+    const toolName = tool.tool_name || tool.name || '未命名工具';
+    const downloadUrl = tool.download_url || '';
+
+    const html = `<div class="market-card-header">
+        <h4 class="market-card-title">🔧 ${toolName}</h4>
+    </div>
+    <button onclick="downloadFCtool('${toolName.replace(/'/g, "\\'")}', '${downloadUrl}')" class="btn-sm" style="margin-top: 10px;">⬇ 下载</button>`;
+
+    card.innerHTML = html;
+    return card;
+}
+
+// 下载 FC 工具
+async function downloadFCtool(toolName, downloadUrl) {
+    try {
+        const result = await fetch('/api/market/fc-tools/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tool_name: toolName, download_url: downloadUrl })
+        });
+        const res = await result.json();
+        if (res.success) {
+            showSuccess(`FC 工具 ${toolName} 已下载！`);
+        } else {
+            showError('下载失败：' + (res.error || '未知错误'));
+        }
+    } catch (error) {
+        showError('下载时出错：' + error.message);
+    }
+}
 
 // 刷新插件广场
 async function refreshPluginMarket() {
     try {
         const listElement = document.getElementById('plugin-market-list');
-        listElement.innerHTML = '<div class="log-entry log-info">' + t('market.loading_plugin_list') + '</div>';
+        listElement.innerHTML = '<div class="log-entry log-info">正在加载插件列表...</div>';
 
         const response = await fetch('/api/market/plugins');
         const data = await response.json();
@@ -2782,13 +3073,13 @@ async function refreshPluginMarket() {
                 listElement.appendChild(card);
             });
         } else if (data.success) {
-            listElement.innerHTML = '<div class="log-entry log-info">' + t('market.no_plugin') + '</div>';
+            listElement.innerHTML = '<div class="log-entry log-info">暂无插件</div>';
         } else {
-            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || t('market.load_failed')) + '</div>';
+            listElement.innerHTML = '<div class="log-entry log-error">' + (data.error || '加载��败') + '</div>';
         }
     } catch (error) {
         document.getElementById('plugin-market-list').innerHTML =
-            '<div class="log-entry log-error">' + t('market.load_error') + '：' + error.message + '</div>';
+            '<div class="log-entry log-error">加载出错：' + error.message + '</div>';
     }
 }
 
@@ -2798,45 +3089,42 @@ function createPluginMarketCard(plugin) {
     card.className = 'market-card';
     card.dataset.pluginName = plugin.name;  // 存储插件名用于后续更新
 
-    const pluginName = plugin.name || plugin.display_name || t('market.unnamed_prompt');
+    const pluginName = plugin.name || plugin.display_name || '未命名插件';
     const displayName = plugin.display_name || pluginName;
-    const desc = plugin.description || plugin.desc || t('market.no_desc');
-    const author = plugin.author || t('market.unknown_author');
+    const desc = plugin.description || plugin.desc || '无描述';
+    const author = plugin.author || '未知作者';
     const repo = plugin.repo || '';
     const downloadUrl = plugin.download_url || repo + '/archive/refs/heads/main.zip';
     const installed = plugin.installed || false;
     const installing = plugin.installing || false;
 
     // 根据状态设置按钮文本和样式（installed 优先于 installing）
-    let btnText, btnDisabled, btnI18n;
+    let btnText, btnDisabled;
     if (installed) {
         // 已安装状态优先
-        btnText = t('market.plugin_installed');
+        btnText = '✓ 已安装';
         btnDisabled = 'disabled';
-        btnI18n = 'market.plugin_installed';
     } else if (installing) {
         // 正在安装
-        btnText = t('market.plugin_installing');
+        btnText = '⏳ 安装中...';
         btnDisabled = 'disabled';
-        btnI18n = 'market.plugin_installing';
     } else {
         // 未安装
-        btnText = t('market.plugin_install');
+        btnText = '⬇ 安装';
         btnDisabled = '';
-        btnI18n = 'market.plugin_install';
     }
 
     const html = `<div class="market-card-header">
         <h4 class="market-card-title">🧩 ${displayName}</h4>
-        <p class="market-card-author">${t('plugins.author')}${author}</p>
+        <p class="market-card-author">作者：${author}</p>
         <p class="market-card-summary">${desc}</p>
         <div class="install-progress" id="progress-${pluginName}" style="display: none;">
             <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
-            <span class="progress-text">${t('market.progress_ready')}</span>
+            <span class="progress-text">准备中...</span>
         </div>
     </div>
-    <button onclick="installPlugin('${pluginName.replace(/'/g, "\\'")}', '${downloadUrl.replace(/'/g, "\\'")}')" 
-        class="btn-sm" style="margin-top: 10px;" ${btnDisabled} data-i18n="${btnI18n}">${btnText}</button>`;
+    <button onclick="installPlugin('${pluginName.replace(/'/g, "\\'")}', '${downloadUrl.replace(/'/g, "\\'")}')"
+        class="btn-sm" style="margin-top: 10px;" ${btnDisabled}>${btnText}</button>`;
 
     card.innerHTML = html;
     return card;
@@ -2850,10 +3138,9 @@ async function installPlugin(pluginName, downloadUrl) {
         if (card) {
             const btn = card.querySelector('button');
             btn.disabled = true;
-            btn.textContent = t('market.plugin_installing');
-            btn.setAttribute('data-i18n', 'market.plugin_installing');
+            btn.textContent = '⏳ 安装中...';
             btn.classList.add('btn-installing');
-            
+
             // 显示进度条
             const progressDiv = document.getElementById(`progress-${pluginName}`);
             if (progressDiv) {
@@ -2867,18 +3154,18 @@ async function installPlugin(pluginName, downloadUrl) {
             body: JSON.stringify({ plugin_name: pluginName, download_url: downloadUrl })
         });
         const res = await result.json();
-        
+
         if (res.success) {
             // 开始轮询检测插件目录
             pollPluginInstalled(pluginName);
         } else {
-            showError(t('market.install_failed') + '：' + (res.error || t('common.unknown_error')));
+            showError('安装失败：' + (res.error || '未知错误'));
             // 恢复按钮状态
-            restoreInstallButton(pluginName, t('market.plugin_install'));
+            restoreInstallButton(pluginName, '⬇ 安装');
         }
     } catch (error) {
-        showError(t('market.install_error') + '：' + error.message);
-        restoreInstallButton(pluginName, t('market.plugin_install'));
+        showError('安装时出错：' + error.message);
+        restoreInstallButton(pluginName, '⬇ 安装');
     }
 }
 
@@ -2889,7 +3176,6 @@ function restoreInstallButton(pluginName, text) {
         const btn = card.querySelector('button');
         btn.disabled = false;
         btn.textContent = text;
-        btn.setAttribute('data-i18n', 'market.plugin_install');
         btn.classList.remove('btn-installing');
     }
     const progressDiv = document.getElementById(`progress-${pluginName}`);
@@ -2900,39 +3186,39 @@ function restoreInstallButton(pluginName, text) {
 async function pollPluginInstalled(pluginName) {
     const maxAttempts = 180;  // 最多轮询 180 次（约 3 分钟）
     let attempts = 0;
-    
+
     const poll = async () => {
         try {
             // 直接检查插件目录是否存在
             const response = await fetch(`/api/market/plugins/check-installed/${pluginName}`);
             const data = await response.json();
-            
+
             const progressDiv = document.getElementById(`progress-${pluginName}`);
             const progressFill = progressDiv ? progressDiv.querySelector('.progress-fill') : null;
             const progressText = progressDiv ? progressDiv.querySelector('.progress-text') : null;
-            
+
             if (data.installed) {
                 // 插件已安装，成功！
                 if (progressFill) progressFill.style.width = '100%';
-                if (progressText) progressText.textContent = t('market.progress_done');
+                if (progressText) progressText.textContent = '✓ 安装完成';
                 // 延迟刷新列表，让后端有时间清理任务状态
                 setTimeout(() => refreshPluginMarket(), 500);
                 return;
             }
-            
+
             // 还未安装，进度条动画
             if (progressFill) {
                 const progress = (attempts % 50) * 2;  // 0-100 循环动画
                 progressFill.style.width = progress + '%';
             }
-            
+
             attempts++;
             if (attempts < maxAttempts) {
                 setTimeout(poll, 1000);  // 每秒检查一次
             } else {
                 // 超时
-                if (progressText) progressText.textContent = t('market.progress_timeout');
-                restoreInstallButton(pluginName, t('market.plugin_install'));
+                if (progressText) progressText.textContent = '安装超时，请重试';
+                restoreInstallButton(pluginName, '⬇ 安装');
             }
         } catch (error) {
             console.error('轮询安装状态失败:', error);
@@ -2940,11 +3226,11 @@ async function pollPluginInstalled(pluginName) {
             if (attempts < maxAttempts) {
                 setTimeout(poll, 1000);
             } else {
-                restoreInstallButton(pluginName, t('market.plugin_install'));
+                restoreInstallButton(pluginName, '⬇ 安装');
             }
         }
     };
-    
+
     poll();
 }
 
@@ -2989,30 +3275,59 @@ function switchUISubTab(tab) {
     }
 }
 
+// 开始唱歌
+async function startSinging() {
+    try {
+        const response = await fetch('/api/live2d/singing/start', { method: 'POST' });
+        const result = await response.json();
+        if (!(response.ok && result.success)) {
+            showError('启动失败：' + (result.error || '未知错误'));
+        } else {
+            showSuccess('开始唱歌');
+        }
+    } catch (error) {
+        showError('启动时出错：' + error.message);
+    }
+}
+
+// 停止唱歌
+async function stopSinging() {
+    try {
+        const response = await fetch('/api/live2d/singing/stop', { method: 'POST' });
+        const result = await response.json();
+        if (!(response.ok && result.success)) {
+            showError('停止失败：' + (result.error || '未知错误'));
+        } else {
+            showSuccess('停止唱歌');
+        }
+    } catch (error) {
+        showError('停止时出错：' + error.message);
+    }
+}
 
 // 一键复位
 async function resetMotion() {
     try {
         const response = await fetch('/api/live2d/motion/reset', { method: 'POST' });
-        
+
         // 检查响应类型
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             // 返回的不是 JSON，可能是 HTML 错误页面
             const text = await response.text();
-            throw new Error('Server returned non-JSON response, possible route conflict or server error');
+            throw new Error('服务器返回了非 JSON 响应，可能是路由冲突或服务器错误');
         }
-        
+
         const result = await response.json();
         if (response.ok && result.success) {
-            showSuccess(t('ui_settings.motion_reset_success'));
+            showSuccess('动作配置已还原');
             // 重新加载配置
             await loadAllMotions();
         } else {
-            showError(t('ui_settings.model_reset_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('复位失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.model_reset_failed') + '：' + error.message);
+        showError('复位时出错：' + error.message);
     }
 }
 
@@ -3029,14 +3344,14 @@ function addMotionToCategory(btn) {
             if (emptyTip) {
                 emptyTip.remove();
             }
-            
+
             const motionItem = document.createElement('div');
             motionItem.className = 'motion-item';
             motionItem.innerHTML = `
                 <span>${file.name}</span>
                 <div>
-                    <button onclick="previewMotion(this)" class="btn-sm">${t('ui_settings.preview')}</button>
-                    <button onclick="removeMotion(this)" class="btn-sm">${t('ui_settings.delete')}</button>
+                    <button onclick="previewMotion(this)" class="btn-sm">预览</button>
+                    <button onclick="removeMotion(this)" class="btn-sm">删除</button>
                 </div>
             `;
             actionsContainer.appendChild(motionItem);
@@ -3057,10 +3372,10 @@ async function previewMotion(btn) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3069,9 +3384,9 @@ function removeMotion(btn) {
     const motionItem = btn.closest('.motion-item');
     const actionsContainer = motionItem.parentElement;
     motionItem.remove();
-    
+
     if (actionsContainer.children.length === 0) {
-        actionsContainer.innerHTML = '<div class="empty-tip">' + t('ui_settings.empty_tip_motion') + '</div>';
+        actionsContainer.innerHTML = '<div class="empty-tip">点击"+添加动作"选择动作文件</div>';
     }
 }
 
@@ -3098,7 +3413,7 @@ function renderAvailableMotions(motionMap) {
 
     const motionKeys = Object.keys(motionMap);
     if (motionKeys.length === 0) {
-        container.innerHTML = '<div class="empty-tip">' + t('ui_settings.no_motion') + '</div>';
+        container.innerHTML = '<div class="empty-tip">暂无可用动作</div>';
         return;
     }
 
@@ -3213,7 +3528,7 @@ async function loadCategorizedMotions() {
                         container.appendChild(item);
                     });
                 } else {
-                    container.innerHTML = '<div class="empty-tip">' + t('ui_settings.empty_tip_drop_motion') + '</div>';
+                    container.innerHTML = '<div class="empty-tip">拖拽动作到此绑定</div>';
                 }
             }
         }
@@ -3255,8 +3570,8 @@ function createMotionBindingItem(emotion, filePath, displayName) {
     item.innerHTML = `
         <span data-file-path="${escapedFilePath}">${displayName}</span>
         <div>
-            <button onclick="previewMotionByPath('${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">${t('ui_settings.preview')}</button>
-            <button onclick="removeMotionBinding('${escapedEmotion}', '${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">${t('ui_settings.delete')}</button>
+            <button onclick="previewMotionByPath('${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">预览</button>
+            <button onclick="removeMotionBinding('${escapedEmotion}', '${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">删除</button>
         </div>
     `;
     return item;
@@ -3298,7 +3613,7 @@ function setupMotionDropZones() {
 async function bindMotionToEmotion(emotion, motionKey, filePath) {
     // motionKey 是配置中的键名（如"动作 1"）
     // filePath 是文件路径（如"motions/hiyori_m01.motion3.json"）
-    
+
     // 如果没有传入 filePath，尝试从映射中获取
     if (!filePath && motionKey) {
         filePath = motionKeyToPath[motionKey] || getMotionFilePathByKey(motionKey);
@@ -3323,7 +3638,7 @@ async function bindMotionToEmotion(emotion, motionKey, filePath) {
 
     // 检查是否已存在（检查文件路径）
     if (motionConfig[chineseEmotion].includes(filePath)) {
-        showWarning(t('ui_settings.already_bound_motion'));
+        showWarning('该动作已绑定到此情绪');
         return;
     }
 
@@ -3345,7 +3660,7 @@ async function bindMotionToEmotion(emotion, motionKey, filePath) {
     // 自动保存配置
     await saveMotionConfigSilent();
 
-    addLog(t('ui_settings.motion_bind_success') + ' "' + motionKey + '" ' + chineseEmotion, 'success', 'system');
+    addLog(`已将动作 "${motionKey}" 绑定到 ${chineseEmotion}`, 'success', 'system');
 }
 
 // 根据键名获取文件路径
@@ -3371,14 +3686,14 @@ async function removeMotionBinding(emotion, filePath) {
         'shy': '害羞',
         'playful': '俏皮'
     };
-    
+
     const chineseEmotion = emotionMapReverse[emotion] || emotion;
-    
+
     if (motionConfig[chineseEmotion]) {
         const index = motionConfig[chineseEmotion].indexOf(filePath);
         if (index > -1) {
             motionConfig[chineseEmotion].splice(index, 1);
-            
+
             // 更新UI
             const container = document.querySelector(`.emotion-category-actions[data-emotion="${emotion}"]`);
             if (container) {
@@ -3388,17 +3703,17 @@ async function removeMotionBinding(emotion, filePath) {
                         item.remove();
                     }
                 });
-                
+
                 // 如果没有动作了，显示空提示
                 if (container.children.length === 0) {
-                    container.innerHTML = '<div class="empty-tip">' + t('ui_settings.empty_tip_drop_motion') + '</div>';
+                    container.innerHTML = '<div class="empty-tip">拖拽动作到此绑定</div>';
                 }
             }
 
             // 自动保存配置
             await saveMotionConfigSilent();
-            
-            addLog(t('ui_settings.motion_remove') + ' "' + filePath + '" ' + chineseEmotion, 'info', 'system');
+
+            addLog(`已移除动作 "${filePath}" 从 ${chineseEmotion}`, 'info', 'system');
         }
     }
 }
@@ -3421,10 +3736,10 @@ async function previewMotionByPath(filePath) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3433,7 +3748,7 @@ async function previewMotionFromList(motionKey) {
     try {
         // 优先从 motionKeyToPath 映射中获取文件路径
         let filePath = motionKeyToPath[motionKey];
-        
+
         // 如果映射中没有，再从 motionConfig 中查找
         if (!filePath) {
             filePath = getMotionFilePathByKey(motionKey);
@@ -3446,10 +3761,10 @@ async function previewMotionFromList(motionKey) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3458,7 +3773,7 @@ async function previewMotionByKey(motionKey) {
     try {
         // 从配置中查找键名对应的文件路径
         const filePath = getMotionFilePathByKey(motionKey);
-        
+
         const response = await fetch('/api/live2d/motion/preview', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3466,10 +3781,10 @@ async function previewMotionByKey(motionKey) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3479,7 +3794,7 @@ async function saveMotionConfig() {
         const categories = [];
         document.querySelectorAll('#emotion-categories-grid .emotion-category').forEach(category => {
             const nameEl = category.querySelector('.emotion-category-header span');
-            const name = nameEl ? nameEl.textContent.replace(/[😊😠😢😲😳😜]\s*/, '') : t('common.unnamed');
+            const name = nameEl ? nameEl.textContent.replace(/[😊😠😢😲😳😜]\s*/, '') : '未命名';
 
             const actionsEl = category.querySelector('.emotion-category-actions');
             const emotion = actionsEl ? actionsEl.dataset.emotion : 'unknown';
@@ -3500,13 +3815,13 @@ async function saveMotionConfig() {
 
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('ui_settings.motion_save_success'), 'success', 'system');
-            showSuccess(t('ui_settings.motion_save_success'));
+            addLog('动作配置已保存', 'success', 'system');
+            showSuccess('动作配置已保存');
         } else {
-            showError(t('ui_settings.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('保存失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.ui_save_error') + '：' + error.message);
+        showError('保存时出错：' + error.message);
     }
 }
 
@@ -3558,17 +3873,17 @@ async function loadExpressionConfig() {
         if (response.ok) {
             const data = await response.json();
             const expressions = data.expressions || {};
-            
+
             // 初始化 expressionConfig
             expressionConfig = {};
             for (const [emotion, files] of Object.entries(expressions)) {
                 expressionConfig[emotion] = Array.isArray(files) ? files : [];
             }
-            
+
             // 构建表情键名到文件路径的映射
             expressionKeyToPath = {};
             expressionPathToKey = {};
-            
+
             // 从可用表情中获取自定义键名映射
             const availableExpressions = data.available_expressions || {};
             // availableExpressions 格式：{"表情 1": "expressions/xxx.exp3.json", ...}
@@ -3576,14 +3891,14 @@ async function loadExpressionConfig() {
                 expressionKeyToPath[key] = filePath;
                 expressionPathToKey[filePath] = key;
             }
-            
+
             renderExpressionConfigWithMapping(expressionConfig);
             renderAvailableExpressions(availableExpressions);
         }
     } catch (error) {
         console.error('加载表情配置失败:', error);
         document.getElementById('available-expressions').innerHTML =
-            '<div class="empty-tip">' + t('ui_settings.loading_expression') + t('common.error') + '</div>';
+            '<div class="empty-tip">加载表情失败</div>';
     }
 }
 
@@ -3618,7 +3933,7 @@ function renderExpressionConfigWithMapping(config) {
                 container.appendChild(item);
             });
         } else {
-            container.innerHTML = '<div class="empty-tip">' + t('ui_settings.empty_tip_drop_expression') + '</div>';
+            container.innerHTML = '<div class="empty-tip">拖拽表情到此绑定</div>';
         }
     });
 }
@@ -3654,8 +3969,8 @@ function createExpressionBindingItem(emotion, filePath, displayName) {
     item.innerHTML = `
         <span data-file-path="${escapedFilePath}">${displayName}</span>
         <div>
-            <button onclick="previewExpressionFromBinding('${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">${t('ui_settings.preview')}</button>
-            <button onclick="removeExpressionBinding('${escapedEmotion}', '${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">${t('ui_settings.delete')}</button>
+            <button onclick="previewExpressionFromBinding('${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">预览</button>
+            <button onclick="removeExpressionBinding('${escapedEmotion}', '${escapedFilePath}')" class="btn-sm" style="padding: 2px 6px; font-size: 11px;">删除</button>
         </div>
     `;
     return item;
@@ -3668,7 +3983,7 @@ async function previewExpressionFromBinding(filePath) {
         const exprKey = expressionPathToKey[filePath];
         // 如果有键名，发送键名；否则发送文件路径
         const expressionToSend = exprKey || filePath;
-        
+
         const response = await fetch('/api/live2d/expression/preview', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3676,10 +3991,10 @@ async function previewExpressionFromBinding(filePath) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3692,7 +4007,7 @@ function renderAvailableExpressions(expressionMap) {
 
     const exprKeys = Object.keys(expressionMap);
     if (exprKeys.length === 0) {
-        container.innerHTML = '<div class="empty-tip">' + t('ui_settings.no_expression') + '</div>';
+        container.innerHTML = '<div class="empty-tip">暂无可用表情</div>';
         return;
     }
 
@@ -3758,7 +4073,7 @@ function setupExpressionDropZones() {
 async function bindExpressionToEmotion(emotion, expressionKey, filePath) {
     // expressionKey 是配置中的键名（如"表情 2"）
     // filePath 是文件路径（如"expressions/xxx.exp3.json"）
-    
+
     // 如果没有传入 filePath，尝试从映射中获取
     if (!filePath && expressionKey) {
         filePath = expressionKeyToPath[expressionKey] || getExpressionFilePathByKey(expressionKey);
@@ -3771,7 +4086,7 @@ async function bindExpressionToEmotion(emotion, expressionKey, filePath) {
 
     // 检查是否已存在（检查文件路径）
     if (expressionConfig[emotion].includes(filePath)) {
-        showWarning(t('ui_settings.already_bound_expression'));
+        showWarning('该表情已绑定到此情绪');
         return;
     }
 
@@ -3793,7 +4108,7 @@ async function bindExpressionToEmotion(emotion, expressionKey, filePath) {
     // 自动保存配置
     await saveExpressionConfigSilent();
 
-    addLog(t('ui_settings.expression_bind_success') + ' "' + expressionKey + '" ' + emotion, 'success', 'system');
+    addLog(`已将表情 "${expressionKey}" 绑定到 ${emotion}`, 'success', 'system');
 }
 
 // 根据键名获取文件路径
@@ -3814,7 +4129,7 @@ async function removeExpressionBinding(emotion, filePath) {
         const index = expressionConfig[emotion].indexOf(filePath);
         if (index > -1) {
             expressionConfig[emotion].splice(index, 1);
-            
+
             // 更新UI
             const container = document.querySelector(`.emotion-expression-actions[data-emotion="${emotion}"]`);
             if (container) {
@@ -3825,10 +4140,10 @@ async function removeExpressionBinding(emotion, filePath) {
                         item.remove();
                     }
                 });
-                
+
                 // 如果没有表情了，显示空提示
                 if (container.children.length === 0) {
-                    container.innerHTML = '<div class="empty-tip">' + t('ui_settings.empty_tip_drop_expression') + '</div>';
+                    container.innerHTML = '<div class="empty-tip">拖拽表情到此绑定</div>';
                 }
             }
 
@@ -3837,7 +4152,7 @@ async function removeExpressionBinding(emotion, filePath) {
 
             // 从键名获取显示名用于日志
             const exprKey = expressionPathToKey[filePath] || getExpressionDisplayName(filePath);
-            addLog(t('ui_settings.expression_remove') + ' "' + exprKey + '" ' + emotion, 'info', 'system');
+            addLog(`已移除表情 "${exprKey}" 从 ${emotion}`, 'info', 'system');
         }
     }
 }
@@ -3850,7 +4165,7 @@ async function previewExpression(expressionName) {
         if (!fullExpressionName.includes('/')) {
             fullExpressionName = 'expressions/' + expressionName + '.exp3.json';
         }
-        
+
         const response = await fetch('/api/live2d/expression/preview', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3858,10 +4173,10 @@ async function previewExpression(expressionName) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3876,10 +4191,10 @@ async function previewExpressionByKey(expressionKey) {
         });
         const result = await response.json();
         if (!(response.ok && result.success)) {
-            showError(t('ui_settings.preview_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('预览失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.preview_failed') + '：' + error.message);
+        showError('预览时出错：' + error.message);
     }
 }
 
@@ -3891,14 +4206,14 @@ async function resetExpression() {
         });
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('ui_settings.expression_reset_success'), 'success', 'system');
+            addLog('表情配置已还原', 'success', 'system');
             // 重新加载配置
             await loadExpressionConfig();
         } else {
-            addLog(t('ui_settings.save_failed') + '：' + (result.error || t('common.unknown_error')), 'error', 'system');
+            addLog('还原失败：' + (result.error || '未知错误'), 'error', 'system');
         }
     } catch (error) {
-        addLog(t('common.error') + '：' + error.message, 'error', 'system');
+        addLog('还原时出错：' + error.message, 'error', 'system');
     }
 }
 
@@ -3913,13 +4228,13 @@ async function saveExpressionConfig() {
 
         const result = await response.json();
         if (response.ok && result.success) {
-            addLog(t('ui_settings.expression_save_success'), 'success', 'system');
-            showSuccess(t('ui_settings.expression_save_success'));
+            addLog('表情配置已保存', 'success', 'system');
+            showSuccess('表情配置已保存');
         } else {
-            showError(t('ui_settings.save_failed') + '：' + (result.error || t('common.unknown_error')));
+            showError('保存失败：' + (result.error || '未知错误'));
         }
     } catch (error) {
-        showError(t('ui_settings.ui_save_error') + '：' + error.message);
+        showError('保存时出错：' + error.message);
     }
 }
 
@@ -3945,20 +4260,2157 @@ let isHeaderCollapsed = false;
 function toggleHeaderCollapse() {
     const body = document.body;
     const collapseBtn = document.querySelector('.btn-collapse-header');
-    
+
     isHeaderCollapsed = !isHeaderCollapsed;
-    
+
     if (isHeaderCollapsed) {
         // 折叠状态
         body.classList.add('header-collapsed');
         if (collapseBtn) {
-            collapseBtn.querySelector('.collapse-text').textContent = t('common.expand');
+            collapseBtn.querySelector('.collapse-text').textContent = '展开';
         }
     } else {
         // 展开状态
         body.classList.remove('header-collapsed');
         if (collapseBtn) {
-            collapseBtn.querySelector('.collapse-text').textContent = t('common.collapse');
+            collapseBtn.querySelector('.collapse-text').textContent = '折叠';
         }
     }
 }
+
+// ============ LLM 提供商 WebUI 覆盖实现 ============
+
+let llmProviderState = {
+    providers: [],
+    selectedProviderId: '',
+    selectedModelId: ''
+};
+
+function createEmptyLLMProvider() {
+    return {
+        id: `provider_${Math.random().toString(16).slice(2, 8)}`,
+        name: '新提供商',
+        api_key: '',
+        api_url: '',
+        models: [],
+        temperature: 0.9,
+        enabled: true
+    };
+}
+
+function normalizeLLMProvider(provider, index) {
+    return {
+        id: provider?.id || `provider_${index + 1}`,
+        name: provider?.name || provider?.id || `提供商 ${index + 1}`,
+        api_key: provider?.api_key || '',
+        api_url: provider?.api_url || '',
+        models: Array.isArray(provider?.models)
+            ? provider.models
+                .filter(model => model && (model.model_id || model.id || model.name))
+                .map(model => ({
+                    model_id: model.model_id || model.id || model.name,
+                    name: model.name || model.model_id || model.id,
+                    enabled: model.enabled !== false
+                }))
+            : [],
+        temperature: Number.isFinite(Number(provider?.temperature)) ? Number(provider.temperature) : 0.9,
+        enabled: provider?.enabled !== false
+    };
+}
+
+function getSelectedLLMProvider() {
+    return llmProviderState.providers.find(provider => provider.id === llmProviderState.selectedProviderId) || null;
+}
+
+function getFirstProviderModelId(provider) {
+    if (!provider || !Array.isArray(provider.models)) return '';
+    const enabledModel = provider.models.find(model => model && model.enabled !== false && model.model_id);
+    if (enabledModel) return enabledModel.model_id;
+    const firstModel = provider.models.find(model => model && model.model_id);
+    return firstModel ? firstModel.model_id : '';
+}
+
+function getPreferredProviderModelId(provider) {
+    return getFirstProviderModelId(provider);
+}
+
+function getProviderModels(provider) {
+    if (!provider) return [];
+    if (!Array.isArray(provider.models)) provider.models = [];
+    return provider.models;
+}
+
+function setSelectedLLMProviderState(providerId, preferredModelId = '') {
+    llmProviderState.selectedProviderId = providerId || llmProviderState.providers[0]?.id || '';
+    const provider = getSelectedLLMProvider();
+    llmProviderState.selectedModelId = preferredModelId || getPreferredProviderModelId(provider);
+    return provider;
+}
+
+function ensureProviderModel(provider, modelId) {
+    const normalizedModelId = normalizeModelIdForProvider(provider, modelId);
+    if (!provider || !normalizedModelId) return null;
+    const models = getProviderModels(provider);
+    let model = models.find((item) => item && item.model_id === normalizedModelId) || null;
+    if (!model) {
+        model = {
+            model_id: normalizedModelId,
+            name: normalizedModelId,
+            enabled: true
+        };
+        models.push(model);
+    }
+    return model;
+}
+
+function removeLLMProviderById(providerId) {
+    if (llmProviderState.providers.length <= 1) {
+        showError('至少保留一个提供商');
+        return false;
+    }
+    llmProviderState.providers = llmProviderState.providers.filter(provider => provider.id !== providerId);
+    setSelectedLLMProviderState(llmProviderState.providers[0]?.id || '');
+    return true;
+}
+
+function removeProviderModelById(provider, modelId) {
+    if (!provider) return false;
+    const beforeCount = getProviderModels(provider).length;
+    provider.models = getProviderModels(provider).filter(model => model.model_id !== modelId);
+    if (provider.models.length === beforeCount) return false;
+    if (llmProviderState.selectedModelId === modelId) {
+        llmProviderState.selectedModelId = getPreferredProviderModelId(provider);
+    }
+    return true;
+}
+
+function getProviderDisplayName(provider, fallback = '未命名提供商') {
+    return (provider?.name || '').trim() || fallback;
+}
+
+function normalizeModelIdForProvider(provider, modelId) {
+    const rawModelId = String(modelId || '').trim();
+    if (!rawModelId) return '';
+
+    const prefixes = [];
+    const providerId = String(provider?.id || '').trim().replace(/\/+$/, '');
+    const providerName = String(provider?.name || '').trim().replace(/\/+$/, '');
+    if (providerId) prefixes.push(providerId);
+    if (providerName && !prefixes.includes(providerName)) prefixes.push(providerName);
+
+    for (const prefix of prefixes) {
+        const marker = `${prefix}/`;
+        if (rawModelId.startsWith(marker)) {
+            return rawModelId.slice(marker.length);
+        }
+    }
+
+    const apiUrl = String(provider?.api_url || '').trim().toLowerCase();
+    if (apiUrl.includes('dashscope.aliyuncs.com/compatible-mode') && rawModelId.split('/').length === 2) {
+        return rawModelId.split('/', 2)[1];
+    }
+
+    return rawModelId;
+}
+
+function formatProviderModelDisplay(provider, modelId) {
+    const prefix = getProviderDisplayName(provider, '').replace(/\/+$/, '');
+    const normalizedModelId = normalizeModelIdForProvider(provider, modelId);
+    if (!prefix || !normalizedModelId) return normalizedModelId;
+    if (normalizedModelId === prefix || normalizedModelId.startsWith(`${prefix}/`)) return normalizedModelId;
+    return `${prefix}/${normalizedModelId}`;
+}
+
+function getProviderModelDisplayMeta(provider, model) {
+    const modelId = normalizeModelIdForProvider(provider, model?.model_id || '');
+    const display = formatProviderModelDisplay(provider, modelId);
+    return {
+        modelId,
+        display,
+        showRawModelId: !!display && display !== modelId
+    };
+}
+
+function getProviderModelStats(provider) {
+    const models = Array.isArray(provider?.models) ? provider.models : [];
+    const configuredCount = models.length;
+    const enabledCount = models.filter((model) => model && model.enabled !== false).length;
+    const fetchedCount = Array.isArray(provider?.fetched_model_ids) ? provider.fetched_model_ids.length : 0;
+    return {
+        configuredCount,
+        enabledCount,
+        fetchedCount
+    };
+}
+
+function getProviderModelHeaderText(provider, providerState) {
+    const stats = getProviderModelStats(provider);
+    return {
+        title: providerState?.catalogVisible
+            ? `可用模型 ${stats.fetchedCount > 0 ? stats.fetchedCount : stats.configuredCount}`
+            : '已配置的模型',
+        summary: providerState?.catalogVisible
+            ? `可用 ${stats.fetchedCount > 0 ? stats.fetchedCount : stats.configuredCount}`
+            : `已启用 ${stats.enabledCount} / 共 ${stats.configuredCount}`
+    };
+}
+
+function getProviderModelEmptyText(providerState) {
+    if (providerState?.catalogVisible) {
+        return providerState?.isFetching ? '正在获取模型列表...' : '没有匹配的模型。';
+    }
+    return '暂无已配置模型，可点击“获取模型列表”或使用“自定义模型”。';
+}
+
+function buildProviderModelSavePayload() {
+    return {
+        providers: (llmProviderState.providers || []).map((provider) => ({
+            ...provider,
+            models: (provider.models || []).map((model) => ({
+                model_id: normalizeModelIdForProvider(provider, model.model_id),
+                name: normalizeModelIdForProvider(provider, model.model_id),
+                enabled: model.enabled !== false
+            }))
+        }))
+    };
+}
+
+function updateProviderModelToolbar(toolbar, providerState) {
+    if (!toolbar) return;
+    const buttons = toolbar.querySelectorAll('.provider-inline-button');
+    if (buttons[0]) {
+        buttons[0].textContent = providerState.isFetching ? '获取中...' : '获取模型列表';
+        buttons[0].disabled = providerState.isFetching;
+    }
+    if (buttons[1]) {
+        buttons[1].textContent = '自定义模型';
+    }
+}
+
+function getProviderModelSearchKeyword() {
+    return (document.getElementById('provider-model-search')?.value || '').trim().toLowerCase();
+}
+
+function renderProviderModelEmptyState(container, text) {
+    if (!container) return;
+    const empty = document.createElement('div');
+    empty.className = 'provider-model-empty';
+    empty.textContent = text;
+    container.appendChild(empty);
+}
+
+function createConfiguredProviderModelRow(provider, model, options = {}) {
+    const { includeTest = false } = options;
+    const displayMeta = getProviderModelDisplayMeta(provider, model || {});
+    const row = document.createElement('div');
+    row.className = `provider-model-row${model && model.enabled === false ? ' disabled' : ''}`;
+    row.title = '管理模型';
+
+    const name = document.createElement('div');
+    name.className = 'provider-model-main';
+    name.innerHTML = `
+        <span class="provider-model-name">${displayMeta.display || displayMeta.modelId}</span>
+        ${displayMeta.showRawModelId ? `<span class="provider-model-id">${displayMeta.modelId}</span>` : ''}
+    `;
+
+    const actionBar = document.createElement('div');
+    actionBar.className = 'provider-model-actions';
+
+    const enabledBtn = document.createElement('button');
+    enabledBtn.type = 'button';
+    enabledBtn.className = `provider-model-toggle${model && model.enabled === false ? ' is-disabled' : ' is-enabled'}`;
+    enabledBtn.textContent = model && model.enabled === false ? '关闭' : '启用';
+    enabledBtn.title = model && model.enabled === false ? '启用后会出现在模型下拉框中' : '关闭后将不再出现在模型下拉框中';
+    enabledBtn.onclick = (event) => {
+        event.stopPropagation();
+        toggleProviderModelEnabled(model.model_id);
+    };
+    actionBar.appendChild(enabledBtn);
+
+    if (includeTest) {
+        const testBtn = document.createElement('button');
+        testBtn.type = 'button';
+        testBtn.className = 'provider-model-set-active';
+        testBtn.textContent = '🔌';
+        testBtn.title = '测活';
+        testBtn.onclick = (event) => {
+            event.stopPropagation();
+            testProviderModel(model.model_id);
+        };
+        actionBar.appendChild(testBtn);
+    }
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'provider-model-remove';
+    removeBtn.textContent = '删除';
+    removeBtn.title = '删除模型';
+    removeBtn.onclick = (event) => {
+        event.stopPropagation();
+        removeProviderModel(model.model_id);
+    };
+    actionBar.appendChild(removeBtn);
+
+    row.appendChild(name);
+    row.appendChild(actionBar);
+    return row;
+}
+
+function createFetchedProviderModelRow(provider, modelId) {
+    const displayMeta = getProviderModelDisplayMeta(provider, { model_id: modelId });
+    const row = document.createElement('div');
+    row.className = 'provider-model-row';
+    row.title = '添加到当前提供商';
+
+    const name = document.createElement('div');
+    name.className = 'provider-model-main';
+    name.innerHTML = `
+        <span class="provider-model-name">${displayMeta.display || displayMeta.modelId}</span>
+        ${displayMeta.showRawModelId ? `<span class="provider-model-id">${displayMeta.modelId}</span>` : ''}
+    `;
+
+    const actionBar = document.createElement('div');
+    actionBar.className = 'provider-model-actions';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'provider-inline-button';
+    addBtn.textContent = '+';
+    addBtn.title = '添加模型';
+    addBtn.onclick = (event) => {
+        event.stopPropagation();
+        addFetchedModelToProvider(modelId);
+    };
+    actionBar.appendChild(addBtn);
+
+    row.appendChild(name);
+    row.appendChild(actionBar);
+    return row;
+}
+
+function createProviderListItem(provider) {
+    const item = document.createElement('div');
+    item.className = `provider-list-item${provider.id === llmProviderState.selectedProviderId ? ' active' : ''}`;
+    item.onclick = () => selectLLMProvider(provider.id);
+
+    const content = document.createElement('div');
+    content.className = 'provider-list-content';
+    content.innerHTML = `
+        <div class="provider-list-name-row">
+            <span class="provider-list-name">${getProviderDisplayName(provider)}</span>
+            ${provider.enabled === false ? '<span class="provider-list-tag">已停用</span>' : ''}
+        </div>
+        <div class="provider-list-url">${provider.api_url || '填写 API URL 后会显示在这里'}</div>
+    `;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'provider-list-delete';
+    removeBtn.textContent = '删除';
+    removeBtn.onclick = (event) => {
+        event.stopPropagation();
+        deleteLLMProvider(provider.id);
+    };
+
+    item.appendChild(content);
+    item.appendChild(removeBtn);
+    return item;
+}
+
+function setProviderEditorValues(provider) {
+    const disabled = !provider;
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    const enabledEl = document.getElementById('provider-enabled');
+    if (enabledEl) enabledEl.checked = provider ? provider.enabled !== false : true;
+    setValue('provider-name', provider?.name || '');
+    setValue('api-key', provider?.api_key || '');
+    setValue('api-url', provider?.api_url || '');
+    setValue('temperature', provider?.temperature ?? 0.9);
+    if (document.getElementById('provider-model-search')) {
+        setValue('provider-model-search', '');
+    }
+
+    const title = document.getElementById('provider-editor-title');
+    if (title) title.textContent = getProviderDisplayName(provider, '未选择提供商');
+    const subtitle = document.getElementById('provider-editor-subtitle');
+    if (subtitle) subtitle.textContent = provider?.api_url || '填写 API URL 后会显示在这里';
+
+    ['provider-enabled', 'provider-name', 'api-key', 'api-url', 'temperature', 'model-input', 'provider-model-search', 'system-prompt']
+        .forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = disabled;
+        });
+}
+
+function ensureLLMProviderLayout() {
+    const section = document.querySelector('#llm-config .section');
+    if (!section || section.dataset.providerLayoutReady === 'true') return;
+
+    section.innerHTML = `
+        <div class="provider-manager">
+            <div class="provider-toolbar form-row">
+                <div class="form-group">
+                    <label for="provider-select">提供商</label>
+                    <select id="provider-select"></select>
+                </div>
+                <div class="provider-actions provider-actions-inline">
+                    <button type="button" class="provider-add-button" onclick="addLLMProvider()">+ 新增</button>
+                    <button type="button" class="provider-delete-button" onclick="deleteLLMProvider()">删除</button>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="provider-name">提供商名称</label>
+                    <input type="text" id="provider-name" placeholder="提供商名称">
+                </div>
+                <div class="form-group provider-enabled-group">
+                    <label class="provider-enabled-label">
+                        <input type="checkbox" id="provider-enabled">
+                        启用此提供商
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="password" id="api-key" placeholder="输入 API Key" style="flex: 1;">
+                        <button type="button" onclick="toggleApiKeyVisibility()" style="width: auto; padding: 12px 20px;">查看</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="api-url">API URL</label>
+                    <input type="text" id="api-url" placeholder="https://api.example.com/v1">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="model-input">模型</label>
+                    <div class="provider-model-input-row">
+                        <input type="text" id="model-input" placeholder="输入模型 ID 后添加">
+                        <button type="button" class="provider-add-button" onclick="addProviderModel()">+ 添加</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="temperature">Temperature</label>
+                    <input type="number" id="temperature" min="0" max="2" step="0.1" placeholder="0.9">
+                </div>
+            </div>
+            <div class="provider-models-panel">
+                <div class="provider-models-header">
+                    <span>模型列表</span>
+                    <span class="provider-model-active" id="active-provider-model-label">当前使用：未设置</span>
+                </div>
+                <div id="provider-model-list" class="provider-model-list"></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="system-prompt">AI 人设</label>
+            <textarea id="system-prompt" class="system-prompt-textarea" placeholder="在这里输入 AI 人设..."></textarea>
+        </div>
+    `;
+
+    section.dataset.providerLayoutReady = 'true';
+
+    ['provider-enabled', 'provider-name', 'api-key', 'api-url', 'temperature'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener(id === 'provider-enabled' ? 'change' : 'input', syncCurrentLLMProviderForm);
+    });
+    const providerSelect = document.getElementById('provider-select');
+    if (providerSelect) {
+        providerSelect.addEventListener('change', (event) => selectLLMProvider(event.target.value));
+    }
+}
+
+function syncCurrentLLMProviderForm() {
+    const provider = getSelectedLLMProvider();
+    if (!provider) return;
+    provider.enabled = !!document.getElementById('provider-enabled')?.checked;
+    provider.name = document.getElementById('provider-name')?.value?.trim() || provider.name || provider.id;
+    provider.api_key = document.getElementById('api-key')?.value || '';
+    provider.api_url = document.getElementById('api-url')?.value || '';
+    const parsedTemperature = parseFloat(document.getElementById('temperature')?.value);
+    provider.temperature = Number.isFinite(parsedTemperature) ? parsedTemperature : 0.9;
+    renderLLMProviderList();
+}
+
+function renderLLMProviderList() {
+    const select = document.getElementById('provider-select');
+    if (!select) return;
+    const currentValue = llmProviderState.selectedProviderId;
+    select.innerHTML = '';
+
+    llmProviderState.providers.forEach((provider) => {
+        const option = document.createElement('option');
+        option.value = provider.id;
+        option.textContent = `${provider.name || provider.id}${provider.enabled !== false ? '' : '（已停用）'}`;
+        select.appendChild(option);
+    });
+
+    select.value = currentValue || llmProviderState.providers[0]?.id || '';
+}
+
+function renderLLMProviderEditor() {
+    const provider = getSelectedLLMProvider();
+    setProviderEditorValues(provider);
+}
+
+function renderLLMProviderModels() {
+    const provider = getSelectedLLMProvider();
+    const container = document.getElementById('provider-model-list');
+    const activeLabel = document.getElementById('active-provider-model-label');
+    if (!container || !activeLabel) return;
+
+    container.innerHTML = '';
+    const models = getProviderModels(provider);
+    if (!provider || models.length === 0) {
+        renderProviderModelEmptyState(container, '还没有模型，先添加一个模型 ID。');
+        activeLabel.textContent = getProviderModelHeaderText(provider, { catalogVisible: false }).summary;
+        return;
+    }
+
+    models.forEach((model) => {
+        container.appendChild(createConfiguredProviderModelRow(provider, model));
+    });
+
+    activeLabel.textContent = getProviderModelHeaderText(provider, { catalogVisible: false }).summary;
+}
+
+function renderLLMProviderUI() {
+    renderLLMProviderList();
+    renderLLMProviderEditor();
+    renderLLMProviderModels();
+}
+
+function selectLLMProvider(providerId) {
+    syncCurrentLLMProviderForm();
+    setSelectedLLMProviderState(providerId);
+    renderLLMProviderUI();
+}
+
+function addLLMProvider() {
+    syncCurrentLLMProviderForm();
+    const provider = createEmptyLLMProvider();
+    llmProviderState.providers.push(provider);
+    setSelectedLLMProviderState(provider.id, '');
+    renderLLMProviderUI();
+}
+
+function deleteLLMProvider() {
+    if (!removeLLMProviderById(llmProviderState.selectedProviderId)) return;
+    renderLLMProviderUI();
+}
+
+function addProviderModel() {
+    syncCurrentLLMProviderForm();
+    const provider = getSelectedLLMProvider();
+    const input = document.getElementById('model-input');
+    if (!provider || !input) return;
+
+    const modelId = (input.value || '').trim();
+    if (!modelId) return;
+
+    const model = ensureProviderModel(provider, modelId);
+    llmProviderState.selectedModelId = model?.model_id || '';
+    input.value = '';
+    renderLLMProviderModels();
+}
+
+function removeProviderModel(modelId) {
+    const provider = getSelectedLLMProvider();
+    if (!removeProviderModelById(provider, modelId)) return;
+    renderLLMProviderModels();
+}
+
+function setActiveProviderModel(modelId) {
+    llmProviderState.selectedModelId = modelId;
+    renderLLMProviderModels();
+}
+
+async function saveLLMConfig() {
+    ensureLLMProviderLayout();
+    syncCurrentLLMProviderForm();
+
+    const selectedProvider = getSelectedLLMProvider();
+    const activeModelId = llmProviderState.selectedModelId || getFirstProviderModelId(selectedProvider);
+    const config = {
+        provider_id: llmProviderState.selectedProviderId || '',
+        selected_provider_id: llmProviderState.selectedProviderId || '',
+        api_key: selectedProvider?.api_key || '',
+        api_url: selectedProvider?.api_url || '',
+        model: activeModelId,
+        model_id: activeModelId,
+        selected_model_id: activeModelId,
+        temperature: parseFloat(document.getElementById('temperature')?.value) || 0.9,
+        system_prompt: document.getElementById('system-prompt')?.value || '',
+        providers: llmProviderState.providers.map((provider) => ({
+            ...provider,
+            models: (provider.models || []).map((model) => ({
+                model_id: model.model_id,
+                name: model.name || model.model_id,
+                enabled: model.enabled !== false
+            }))
+        }))
+    };
+
+    try {
+        const response = await fetch('/api/config/llm', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+            addLog('LLM 提供商配置保存成功', 'success', 'system');
+            showSuccess('LLM 提供商配置保存成功');
+        } else {
+            addLog('LLM 提供商配置保存失败：' + (result.error || '未知错误'), 'error', 'system');
+            showError('LLM 提供商配置保存失败：' + (result.error || '未知错误'));
+        }
+    } catch (error) {
+        addLog('LLM 提供商配置保存出错：' + error.message, 'error', 'system');
+        showError('LLM 提供商配置保存出错：' + error.message);
+    }
+}
+
+async function loadLLMConfig() {
+    ensureLLMProviderLayout();
+    try {
+        const response = await fetch('/api/config/llm');
+        if (response.ok) {
+            const data = await response.json();
+            llmProviderState.providers = Array.isArray(data.providers) && data.providers.length > 0
+                ? data.providers.map((provider, index) => normalizeLLMProvider(provider, index))
+                : [normalizeLLMProvider({
+                    id: data.provider_id || 'main',
+                    name: data.provider_id || '主模型',
+                    api_key: data.api_key || '',
+                    api_url: data.api_url || '',
+                    temperature: data.temperature || 0.9,
+                    models: data.model ? [{ model_id: data.model, name: data.model, enabled: true }] : []
+                }, 0)];
+
+            llmProviderState.selectedProviderId = data.selected_provider_id || data.provider_id || llmProviderState.providers[0]?.id || '';
+            llmProviderState.selectedModelId = data.selected_model_id || data.model_id || data.model || getFirstProviderModelId(getSelectedLLMProvider());
+            _setVal('system-prompt', data.system_prompt || '');
+            renderLLMProviderUI();
+        }
+    } catch (error) {
+        console.error('加载 LLM 配置失败:', error);
+    }
+}
+
+function ensureLLMProviderLayout() {
+    const section = document.querySelector('#llm-config .section');
+    if (!section || section.dataset.providerLayoutReady === 'true') return;
+
+    section.innerHTML = `
+        <div class="provider-manager provider-manager-v2">
+            <div class="provider-list-panel">
+                <div class="provider-list-header">
+                    <div>
+                        <div class="provider-panel-title">提供商源</div>
+                        <div class="provider-panel-subtitle">管理可用的模型服务来源</div>
+                    </div>
+                    <button type="button" class="provider-add-button provider-list-add-button" onclick="addLLMProvider()">+ 新增</button>
+                </div>
+                <div id="provider-list" class="provider-list"></div>
+            </div>
+            <div class="provider-editor-panel">
+                <div class="provider-editor-header">
+                    <div class="provider-editor-title-wrap">
+                        <div id="provider-editor-title" class="provider-editor-title">-</div>
+                        <div id="provider-editor-subtitle" class="provider-editor-subtitle">-</div>
+                    </div>
+                </div>
+                <div class="form-row provider-top-row">
+                    <div class="form-group">
+                        <label for="provider-name">名称</label>
+                        <div class="field-help">显示名称，用于左侧列表和模型选择器</div>
+                        <input type="text" id="provider-name" placeholder="OpenAI 主服务">
+                    </div>
+                    <div class="form-group provider-enabled-group">
+                        <label class="provider-enabled-label">
+                            <input type="checkbox" id="provider-enabled">
+                            启用此提供商
+                        </label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="api-key">API Key</label>
+                        <div class="field-help">当前服务使用的访问密钥</div>
+                        <div class="provider-password-row">
+                            <input type="password" id="api-key" placeholder="输入 API Key">
+                            <button type="button" class="provider-inline-button" onclick="toggleApiKeyVisibility()">显示</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="api-url">API Base URL</label>
+                        <div class="field-help">当前服务的 API 地址</div>
+                        <input type="text" id="api-url" placeholder="https://api.example.com/v1">
+                    </div>
+                </div>
+                <details class="provider-advanced-panel">
+                    <summary>高级配置</summary>
+                    <div class="provider-advanced-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="temperature">Temperature</label>
+                                <div class="field-help">控制回复发散程度</div>
+                                <input type="number" id="temperature" min="0" max="2" step="0.1" placeholder="0.9">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="system-prompt">AI 人设</label>
+                            <div class="field-help">当前 provider 对应的默认系统提示词</div>
+                            <textarea id="system-prompt" class="system-prompt-textarea" placeholder="在这里输入 AI 人设..."></textarea>
+                        </div>
+                    </div>
+                </details>
+                <div class="provider-models-panel">
+                    <div class="provider-models-header">
+                        <div class="provider-models-title-wrap">
+                            <span class="provider-models-title">已配置的模型</span>
+                            <span class="provider-model-active" id="active-provider-model-label">已启用 0 / 共 0</span>
+                        </div>
+                        <div class="provider-model-toolbar">
+                            <input type="text" id="provider-model-search" class="provider-model-search" placeholder="搜索模型 ID">
+                            <button type="button" class="provider-inline-button" onclick="addProviderModel()">添加模型</button>
+                        </div>
+                    </div>
+                    <div class="provider-model-input-row">
+                        <input type="text" id="model-input" placeholder="输入模型 ID，例如 gpt-4o-mini">
+                    </div>
+                    <div id="provider-model-list" class="provider-model-list"></div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    section.dataset.providerLayoutReady = 'true';
+
+    ['provider-enabled', 'provider-name', 'api-key', 'api-url', 'temperature'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener(id === 'provider-enabled' ? 'change' : 'input', syncCurrentLLMProviderForm);
+    });
+
+    const searchInput = document.getElementById('provider-model-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', renderLLMProviderModels);
+    }
+}
+
+function syncCurrentLLMProviderForm() {
+    const provider = getSelectedLLMProvider();
+    if (!provider) return;
+
+    provider.enabled = !!document.getElementById('provider-enabled')?.checked;
+    provider.name = document.getElementById('provider-name')?.value?.trim() || provider.name || provider.id;
+    provider.api_key = document.getElementById('api-key')?.value || '';
+    provider.api_url = document.getElementById('api-url')?.value || '';
+    const parsedTemperature = parseFloat(document.getElementById('temperature')?.value);
+    provider.temperature = Number.isFinite(parsedTemperature) ? parsedTemperature : 0.9;
+    renderLLMProviderList();
+}
+
+function renderLLMProviderList() {
+    const container = document.getElementById('provider-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    llmProviderState.providers.forEach((provider) => {
+        container.appendChild(createProviderListItem(provider));
+    });
+}
+
+function renderLLMProviderEditor() {
+    const provider = getSelectedLLMProvider();
+    setProviderEditorValues(provider);
+}
+
+function renderLLMProviderModels() {
+    const provider = getSelectedLLMProvider();
+    const container = document.getElementById('provider-model-list');
+    const activeLabel = document.getElementById('active-provider-model-label');
+    if (!container || !activeLabel) return;
+
+    container.innerHTML = '';
+    const models = getProviderModels(provider);
+    if (!provider || models.length === 0) {
+        renderProviderModelEmptyState(container, '暂无已配置模型，可在上方输入模型 ID 后新增。');
+        activeLabel.textContent = getProviderModelHeaderText(provider, { catalogVisible: false }).summary;
+        return;
+    }
+
+    const keyword = getProviderModelSearchKeyword();
+    const visibleModels = models.filter((model) => {
+        if (!keyword) return true;
+        return (model.model_id || '').toLowerCase().includes(keyword) || (model.name || '').toLowerCase().includes(keyword);
+    });
+    const headerText = getProviderModelHeaderText(provider, { catalogVisible: false });
+
+    if (visibleModels.length === 0) {
+        renderProviderModelEmptyState(container, '没有匹配的模型。');
+        activeLabel.textContent = headerText.summary;
+        return;
+    }
+
+    visibleModels.forEach((model) => {
+        container.appendChild(createConfiguredProviderModelRow(provider, model));
+    });
+
+    activeLabel.textContent = headerText.summary;
+}
+
+function renderLLMProviderUI() {
+    renderLLMProviderList();
+    renderLLMProviderEditor();
+    renderLLMProviderModels();
+}
+
+function selectLLMProvider(providerId) {
+    syncCurrentLLMProviderForm();
+    setSelectedLLMProviderState(providerId);
+    renderLLMProviderUI();
+}
+
+function addLLMProvider() {
+    syncCurrentLLMProviderForm();
+    const provider = createEmptyLLMProvider();
+    llmProviderState.providers.push(provider);
+    setSelectedLLMProviderState(provider.id, '');
+    renderLLMProviderUI();
+}
+
+function deleteLLMProvider(providerId = llmProviderState.selectedProviderId) {
+    if (!removeLLMProviderById(providerId)) return;
+    renderLLMProviderUI();
+}
+
+function addProviderModel() {
+    syncCurrentLLMProviderForm();
+    const provider = getSelectedLLMProvider();
+    const input = document.getElementById('model-input');
+    if (!provider || !input) return;
+
+    const modelId = (input.value || '').trim();
+    if (!modelId) return;
+
+    const model = ensureProviderModel(provider, modelId);
+    llmProviderState.selectedModelId = model?.model_id || '';
+    input.value = '';
+    renderLLMProviderModels();
+}
+
+function removeProviderModel(modelId) {
+    const provider = getSelectedLLMProvider();
+    if (!removeProviderModelById(provider, modelId)) return;
+    renderLLMProviderModels();
+}
+
+function setActiveProviderModel(modelId) {
+    llmProviderState.selectedModelId = modelId;
+    renderLLMProviderModels();
+}
+
+const LLM_PROVIDER_UI_TEXT = {
+    panelTitle: '\u63d0\u4f9b\u5546\u6e90',
+    panelSubtitle: '\u7ba1\u7406\u5f53\u524d\u53ef\u7528\u7684\u6a21\u578b\u670d\u52a1\u6765\u6e90',
+    addProvider: '+ \u65b0\u589e',
+    nameLabel: '\u540d\u79f0',
+    nameHelp: '\u663e\u793a\u540d\u79f0\uff0c\u7528\u4e8e\u5de6\u4fa7\u5217\u8868\u548c\u6a21\u578b\u9009\u62e9\u5668',
+    keyHelp: '\u5f53\u524d\u670d\u52a1\u4f7f\u7528\u7684\u8bbf\u95ee\u5bc6\u94a5',
+    urlHelp: '\u5f53\u524d\u670d\u52a1\u7684 API \u5730\u5740',
+    tempHelp: '\u63a7\u5236\u56de\u590d\u53d1\u6563\u7a0b\u5ea6',
+    promptLabel: 'AI \u4eba\u8bbe',
+    promptHelp: '\u5f53\u524d\u63d0\u4f9b\u5546\u5bf9\u5e94\u7684\u9ed8\u8ba4\u7cfb\u7edf\u63d0\u793a\u8bcd',
+    enableLabel: '\u542f\u7528\u6b64\u63d0\u4f9b\u5546',
+    apiBase: 'API Base URL',
+    advanced: '\u9ad8\u7ea7\u914d\u7f6e',
+    modelsTitle: '\u5df2\u914d\u7f6e\u7684\u6a21\u578b',
+    modelSearch: '\u641c\u7d22\u6a21\u578b ID',
+    addModel: '\u65b0\u589e\u6a21\u578b',
+    modelInput: '\u8f93\u5165\u6a21\u578b ID\uff0c\u5982 gpt-4o-mini',
+    deleteText: '\u5220\u9664',
+    disabledTag: '\u5df2\u505c\u7528',
+    noApiUrl: '\u672a\u914d\u7f6e API URL',
+    titleFallback: '\u672a\u9009\u62e9\u63d0\u4f9b\u5546',
+    subtitleFallback: '\u586b\u5199 API Base URL \u540e\u4f1a\u663e\u793a\u5728\u8fd9\u91cc',
+    noModels: '\u6682\u65e0\u5df2\u914d\u7f6e\u6a21\u578b\uff0c\u53ef\u5728\u4e0a\u65b9\u8f93\u5165\u6a21\u578b ID \u540e\u65b0\u589e\u3002',
+    noMatches: '\u6ca1\u6709\u5339\u914d\u7684\u6a21\u578b\u3002',
+    showText: '\u663e\u793a'
+};
+
+function applyLLMProviderStaticText() {
+    const scope = document.querySelector('#llm-config .section');
+    if (!scope || !scope.querySelector('.provider-manager-v2')) return;
+
+    const setText = (selector, text) => {
+        const el = scope.querySelector(selector);
+        if (el) el.textContent = text;
+    };
+    const setPlaceholder = (selector, text) => {
+        const el = scope.querySelector(selector);
+        if (el) el.placeholder = text;
+    };
+    const setFieldHelp = (inputId, text) => {
+        const label = scope.querySelector(`label[for="${inputId}"]`);
+        const help = label?.parentElement?.querySelector('.field-help');
+        if (help) help.textContent = text;
+    };
+
+    setText('.provider-panel-title', LLM_PROVIDER_UI_TEXT.panelTitle);
+    setText('.provider-panel-subtitle', LLM_PROVIDER_UI_TEXT.panelSubtitle);
+    setText('.provider-list-add-button', LLM_PROVIDER_UI_TEXT.addProvider);
+    setText('label[for="provider-name"]', LLM_PROVIDER_UI_TEXT.nameLabel);
+    setText('label[for="api-url"]', LLM_PROVIDER_UI_TEXT.apiBase);
+    setText('label[for="temperature"]', '温度');
+    setText('.provider-advanced-panel summary', LLM_PROVIDER_UI_TEXT.advanced);
+    setText('.provider-models-title', LLM_PROVIDER_UI_TEXT.modelsTitle);
+
+    setFieldHelp('provider-name', LLM_PROVIDER_UI_TEXT.nameHelp);
+    setFieldHelp('api-key', LLM_PROVIDER_UI_TEXT.keyHelp);
+    setFieldHelp('api-url', LLM_PROVIDER_UI_TEXT.urlHelp);
+    setFieldHelp('temperature', LLM_PROVIDER_UI_TEXT.tempHelp);
+    setFieldHelp('system-prompt', LLM_PROVIDER_UI_TEXT.promptHelp);
+
+    setPlaceholder('#provider-name', 'OpenAI \u4e3b\u670d\u52a1');
+    setPlaceholder('#api-key', '\u8f93\u5165 API Key');
+    setPlaceholder('#api-url', 'https://api.example.com/v1');
+    setPlaceholder('#provider-model-search', LLM_PROVIDER_UI_TEXT.modelSearch);
+    setPlaceholder('#model-input', LLM_PROVIDER_UI_TEXT.modelInput);
+    const enabledLabel = scope.querySelector('.provider-enabled-label');
+    if (enabledLabel) {
+        const textNode = Array.from(enabledLabel.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
+        if (textNode) {
+            textNode.nodeValue = ` ${LLM_PROVIDER_UI_TEXT.enableLabel}`;
+        } else {
+            enabledLabel.appendChild(document.createTextNode(` ${LLM_PROVIDER_UI_TEXT.enableLabel}`));
+        }
+    }
+
+    const passwordButton = scope.querySelector('.provider-password-row .provider-inline-button');
+    if (passwordButton) passwordButton.textContent = LLM_PROVIDER_UI_TEXT.showText;
+
+    scope.querySelectorAll('.provider-list-delete').forEach((button) => {
+        button.textContent = LLM_PROVIDER_UI_TEXT.deleteText;
+    });
+
+    scope.querySelectorAll('.provider-list-item').forEach((item) => {
+        const tag = item.querySelector('.provider-list-tag');
+        if (tag) tag.textContent = LLM_PROVIDER_UI_TEXT.disabledTag;
+        const url = item.querySelector('.provider-list-url');
+        if (url && !url.textContent.trim()) url.textContent = LLM_PROVIDER_UI_TEXT.noApiUrl;
+    });
+
+    const provider = typeof getSelectedLLMProvider === 'function' ? getSelectedLLMProvider() : null;
+    const activeLabel = scope.querySelector('#active-provider-model-label');
+    if (activeLabel) {
+        activeLabel.textContent = getProviderModelHeaderText(provider, { catalogVisible: false }).summary;
+    }
+
+    const title = scope.querySelector('#provider-editor-title');
+    if (title && (!title.textContent || title.textContent === '-')) {
+        title.textContent = provider?.name || provider?.id || LLM_PROVIDER_UI_TEXT.titleFallback;
+    }
+    const subtitle = scope.querySelector('#provider-editor-subtitle');
+    if (subtitle && (!subtitle.textContent || subtitle.textContent === '-')) {
+        subtitle.textContent = provider?.api_url || LLM_PROVIDER_UI_TEXT.subtitleFallback;
+    }
+
+    scope.querySelectorAll('.provider-model-row').forEach((row) => {
+        const removeButton = row.querySelector('.provider-model-remove');
+        if (removeButton) removeButton.textContent = LLM_PROVIDER_UI_TEXT.deleteText;
+    });
+
+    const empty = scope.querySelector('.provider-model-empty');
+    if (empty) {
+        const keyword = (scope.querySelector('#provider-model-search')?.value || '').trim();
+        const hasModels = !!(provider && Array.isArray(provider.models) && provider.models.length > 0);
+        empty.textContent = keyword && hasModels ? LLM_PROVIDER_UI_TEXT.noMatches : LLM_PROVIDER_UI_TEXT.noModels;
+    }
+}
+
+const __ensureLLMProviderLayout = ensureLLMProviderLayout;
+ensureLLMProviderLayout = function() {
+    __ensureLLMProviderLayout();
+    applyLLMProviderStaticText();
+};
+
+const __renderLLMProviderList = renderLLMProviderList;
+renderLLMProviderList = function() {
+    __renderLLMProviderList();
+    applyLLMProviderStaticText();
+};
+
+const __renderLLMProviderEditor = renderLLMProviderEditor;
+renderLLMProviderEditor = function() {
+    __renderLLMProviderEditor();
+    applyLLMProviderStaticText();
+};
+
+const __renderLLMProviderModels = renderLLMProviderModels;
+renderLLMProviderModels = function() {
+    __renderLLMProviderModels();
+    applyLLMProviderStaticText();
+};
+
+const __renderLLMProviderUI = renderLLMProviderUI;
+renderLLMProviderUI = function() {
+    __renderLLMProviderUI();
+    applyLLMProviderStaticText();
+};
+
+const __applyLLMProviderStaticTextBase = applyLLMProviderStaticText;
+applyLLMProviderStaticText = function() {
+    __applyLLMProviderStaticTextBase();
+    const scope = document.querySelector('#llm-config .section');
+    if (!scope) return;
+    const enabledLabel = scope.querySelector('.provider-enabled-label');
+    if (!enabledLabel) return;
+    const input = enabledLabel.querySelector('input');
+    enabledLabel.textContent = '';
+    if (input) enabledLabel.appendChild(input);
+    enabledLabel.appendChild(document.createTextNode(` ${LLM_PROVIDER_UI_TEXT.enableLabel}`));
+};
+// === Codex provider migration overrides ===
+(function () {
+    const providerCatalogState = {};
+
+    function getProviderCatalogState(providerId) {
+        const key = String(providerId || '');
+        if (!providerCatalogState[key]) {
+            providerCatalogState[key] = {
+                catalogVisible: false,
+                isFetching: false
+            };
+        }
+        return providerCatalogState[key];
+    }
+
+    function parseProviderModelValue(value) {
+        if (!value || typeof value !== 'string' || !value.includes('|')) {
+            return { provider_id: '', model_id: '' };
+        }
+        const parts = value.split('|');
+        return { provider_id: parts[0] || '', model_id: parts.slice(1).join('|') || '' };
+    }
+
+    function normalizeBackendModelOptions(modelOptions, includeEmpty = false) {
+        const options = [];
+        if (includeEmpty) {
+            options.push({ value: '', provider_id: '', model_id: '', label: '（不使用）' });
+        }
+        (Array.isArray(modelOptions) ? modelOptions : []).forEach((option) => {
+            const providerId = String(option?.provider_id || '').trim();
+            const modelId = String(option?.model_id || '').trim();
+            if (!providerId || !modelId) return;
+            options.push({
+                value: `${providerId}|${modelId}`,
+                provider_id: providerId,
+                model_id: modelId,
+                label: String(option?.display || option?.label || `${providerId}/${modelId}`)
+            });
+        });
+        return options;
+    }
+
+    function createProviderModelOption(provider, providerId, modelId) {
+        return {
+            value: `${providerId}|${modelId}`,
+            provider_id: providerId,
+            model_id: modelId,
+            label: formatProviderModelDisplay(provider, modelId)
+        };
+    }
+
+    function getEnabledProviderModelOptions(includeEmpty) {
+        const options = [];
+        if (includeEmpty) {
+            options.push({ value: '', provider_id: '', model_id: '', label: '（不使用）' });
+        }
+        (llmProviderState.providers || []).forEach((provider) => {
+            if (!provider || provider.enabled === false) return;
+            (provider.models || []).forEach((model) => {
+                if (!model || model.enabled === false || !model.model_id) return;
+                options.push(createProviderModelOption(provider, provider.id, model.model_id));
+            });
+        });
+        return options;
+    }
+
+    function fillProviderModelSelect(selectId, selectedValue, includeEmpty, explicitOptions) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const options = Array.isArray(explicitOptions)
+            ? explicitOptions
+            : getEnabledProviderModelOptions(includeEmpty);
+        const preferred = selectedValue !== undefined
+            ? selectedValue
+            : (select.value || select.dataset.selectedValue || '');
+
+        select.innerHTML = '';
+        options.forEach((option) => {
+            const el = document.createElement('option');
+            el.value = option.value;
+            el.textContent = option.label;
+            select.appendChild(el);
+        });
+
+        const hasPreferred = options.some((option) => option.value === preferred);
+        if (hasPreferred) {
+            select.value = preferred;
+        } else if (options.length > 0) {
+            select.value = options[0].value;
+        } else {
+            select.value = '';
+        }
+        select.dataset.selectedValue = select.value;
+    }
+
+    function getPluginFieldId(path) {
+        return `config-${path.replace(/\./g, '__')}`;
+    }
+
+    function findPluginFieldValueByPath(path) {
+        const input = document.getElementById(getPluginFieldId(path));
+        if (!input) return '';
+        if (input.type === 'checkbox') return input.checked;
+        return input.value;
+    }
+
+    function getPluginProviderOptions() {
+        return (llmProviderState.providers || []).reduce((acc, provider) => {
+            if (!provider || provider.enabled === false || !provider.id) return acc;
+            acc.push({
+                provider_id: provider.id,
+                label: provider.name || provider.id
+            });
+            return acc;
+        }, []);
+    }
+
+    function getPluginModelsForProvider(providerId) {
+        return getEnabledProviderModelOptions(false).filter((option) => option.provider_id === providerId);
+    }
+
+    function findProviderModelBinding(providerId, modelId) {
+        for (const provider of (llmProviderState.providers || [])) {
+            if (!provider || provider.enabled === false || provider.id !== providerId) continue;
+            for (const model of (provider.models || [])) {
+                if (!model || model.enabled === false || model.model_id !== modelId) continue;
+                return {
+                    provider,
+                    model
+                };
+            }
+        }
+        return null;
+    }
+
+    function refreshPluginProviderBoundFields() {
+        const setSelectValue = (select, value, suffix = '（当前配置）') => {
+            const normalizedValue = String(value || '');
+            const matched = Array.from(select.options).some((option) => option.value === normalizedValue);
+            if (matched) {
+                select.value = normalizedValue;
+                return;
+            }
+            if (normalizedValue) {
+                const option = document.createElement('option');
+                option.value = normalizedValue;
+                option.textContent = `${normalizedValue}${suffix}`;
+                select.appendChild(option);
+                select.value = normalizedValue;
+                return;
+            }
+            if (select.options.length > 0) {
+                select.selectedIndex = 0;
+            }
+        };
+
+        document.querySelectorAll('select[data-plugin-field-type="llm_provider"]').forEach((select) => {
+            const currentValue = select.dataset.currentValue || select.value || '';
+            select.innerHTML = '';
+            const empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = '跟随全局对话模型';
+            select.appendChild(empty);
+            getPluginProviderOptions().forEach((option) => {
+                const el = document.createElement('option');
+                el.value = option.provider_id;
+                el.textContent = option.label;
+                select.appendChild(el);
+            });
+            setSelectValue(select, currentValue);
+        });
+
+        document.querySelectorAll('select[data-plugin-field-type="llm_model"]').forEach((select) => {
+            const providerField = select.dataset.providerField || '';
+            const providerId = String(findPluginFieldValueByPath(providerField) || '');
+            const currentValue = select.dataset.currentValue || select.value || '';
+            const options = providerId ? getPluginModelsForProvider(providerId) : [];
+            select.innerHTML = '';
+            const empty = document.createElement('option');
+            empty.value = '';
+            empty.textContent = providerId ? '使用提供商默认模型' : '先选择提供商';
+            select.appendChild(empty);
+            select.disabled = !providerId;
+            options.forEach((option) => {
+                const el = document.createElement('option');
+                el.value = option.model_id;
+                el.textContent = option.label;
+                select.appendChild(el);
+            });
+            setSelectValue(select, currentValue);
+            select.onchange = function () { this.dataset.currentValue = this.value; };
+        });
+    }
+
+    function syncProviderBoundSelectors() {
+        fillProviderModelSelect('dialog-model-select', undefined, false);
+        fillProviderModelSelect('vision-model-select', undefined, true);
+        refreshPluginProviderBoundFields();
+    }
+
+    async function loadPersonaSettings() {
+        try {
+            const response = await fetch('/api/settings/persona');
+            if (!response.ok) return;
+            const data = await response.json();
+            const el = document.getElementById('persona-system-prompt');
+            if (el) el.value = data.system_prompt || '';
+        } catch (error) {
+            console.error('loadPersonaSettings failed:', error);
+        }
+    }
+
+    async function savePersonaSettings() {
+        try {
+            const response = await fetch('/api/settings/persona', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    system_prompt: document.getElementById('persona-system-prompt')?.value || ''
+                })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showSuccess('人格设置已保存');
+            } else {
+                showError((result && result.error) || '人格设置保存失败');
+            }
+        } catch (error) {
+            showError('人格设置保存出错: ' + error.message);
+        }
+    }
+    window.savePersonaSettings = savePersonaSettings;
+    window.loadPersonaSettings = loadPersonaSettings;
+
+    const __switchTabBase = switchTab;
+    switchTab = function (tabName) {
+        __switchTabBase(tabName);
+        const configSaveButtons = document.getElementById('configSaveButtons');
+        if (!configSaveButtons) return;
+        if (tabName === 'persona-config') {
+            configSaveButtons.innerHTML = '<button class="config-save-button" onclick="savePersonaSettings()">保存配置</button>';
+        }
+    };
+
+    saveLLMConfig = async function () {
+        ensureLLMProviderLayout();
+        syncCurrentLLMProviderForm();
+
+        const config = buildProviderModelSavePayload();
+
+        try {
+            const response = await fetch('/api/config/llm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showSuccess('LLM 配置已保存');
+                await loadDialogConfig();
+                await loadBasicConfig();
+                syncProviderBoundSelectors();
+            } else {
+                showError((result && result.error) || 'LLM 配置保存失败');
+            }
+        } catch (error) {
+            showError('LLM 配置保存出错: ' + error.message);
+        }
+    };
+
+    loadLLMConfig = async function () {
+        ensureLLMProviderLayout();
+        try {
+            const response = await fetch('/api/config/llm');
+            if (!response.ok) return;
+            const data = await response.json();
+            llmProviderState.providers = Array.isArray(data.providers) && data.providers.length > 0
+                ? data.providers.map((provider, index) => normalizeLLMProvider(provider, index))
+                : [normalizeLLMProvider({
+                    id: data.provider_id || 'main',
+                    name: data.provider_id || 'main',
+                    api_key: data.api_key || '',
+                    api_url: data.api_url || '',
+                    temperature: data.temperature || 0.9,
+                    models: data.model ? [{ model_id: data.model, name: data.model, enabled: true }] : []
+                }, 0)];
+            llmProviderState.selectedProviderId = data.selected_provider_id || data.provider_id || llmProviderState.providers[0]?.id || '';
+            llmProviderState.selectedModelId = getPreferredProviderModelId(getSelectedLLMProvider());
+            renderLLMProviderUI();
+            syncProviderBoundSelectors();
+        } catch (error) {
+            console.error('loadLLMConfig failed:', error);
+        }
+    };
+
+    ensureLLMProviderLayout = function () {
+        const section = document.querySelector('#llm-config .section');
+        if (!section || section.dataset.providerLayoutReady === 'true') return;
+
+        section.innerHTML = `
+            <div class="provider-manager provider-manager-v2">
+                <div class="provider-list-panel">
+                    <div class="provider-list-header">
+                        <div>
+                            <div class="provider-panel-title">提供商源</div>
+                            <div class="provider-panel-subtitle">管理可用的模型服务来源</div>
+                        </div>
+                        <button type="button" class="provider-add-button provider-list-add-button" onclick="addLLMProvider()">+ 新增</button>
+                    </div>
+                    <div id="provider-list" class="provider-list"></div>
+                </div>
+                <div class="provider-editor-panel">
+                    <div class="provider-editor-header">
+                        <div class="provider-editor-title-wrap">
+                            <div id="provider-editor-title" class="provider-editor-title">-</div>
+                            <div id="provider-editor-subtitle" class="provider-editor-subtitle">-</div>
+                        </div>
+                    </div>
+                    <div class="form-row provider-top-row">
+                        <div class="form-group">
+                            <label for="provider-name">名称</label>
+                            <input type="text" id="provider-name" placeholder="例如 OpenAI 主服务">
+                        </div>
+                        <div class="form-group provider-enabled-group">
+                            <label class="provider-enabled-label">
+                                <input type="checkbox" id="provider-enabled">
+                                启用此提供商
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="api-key">API Key</label>
+                            <div class="field-help">当前服务使用的访问密钥</div>
+                            <div class="provider-password-row">
+                                <input type="password" id="api-key" placeholder="输入 API Key">
+                                <button type="button" class="provider-inline-button" onclick="toggleApiKeyVisibility()">显示</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="api-url">API Base URL</label>
+                            <div class="field-help">当前服务的 API 地址</div>
+                            <input type="text" id="api-url" placeholder="https://api.example.com/v1">
+                        </div>
+                    </div>
+                    <details class="provider-advanced-panel">
+                        <summary>高级配置</summary>
+                        <div class="provider-advanced-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="temperature">Temperature</label>
+                                    <div class="field-help">控制回复发散程度</div>
+                                    <input type="number" id="temperature" min="0" max="2" step="0.1" placeholder="0.9">
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                    <div class="provider-models-panel">
+                        <div class="provider-models-header">
+                            <div class="provider-models-title-wrap">
+                                <span class="provider-models-title">已配置的模型</span>
+                                <span class="provider-model-active" id="active-provider-model-label">已配置 0</span>
+                            </div>
+                            <div class="provider-model-toolbar">
+                                <input type="text" id="provider-model-search" class="provider-model-search" placeholder="搜索模型 ID">
+                                <button type="button" class="provider-inline-button" onclick="fetchProviderModels()">获取模型列表</button>
+                                <button type="button" class="provider-inline-button" onclick="focusCustomProviderModelInput()">自定义模型</button>
+                            </div>
+                        </div>
+                        <div class="provider-model-input-row is-collapsed" id="provider-model-custom-row">
+                            <input type="text" id="model-input" placeholder="输入模型 ID，例如 gpt-4o-mini">
+                            <button type="button" class="provider-inline-button" onclick="addProviderModel()">添加模型</button>
+                        </div>
+                        <div id="provider-model-list" class="provider-model-list"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        section.dataset.providerLayoutReady = 'true';
+        ['provider-enabled', 'provider-name', 'api-key', 'api-url', 'temperature'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(id === 'provider-enabled' ? 'change' : 'input', syncCurrentLLMProviderForm);
+        });
+        const searchInput = document.getElementById('provider-model-search');
+        if (searchInput) searchInput.addEventListener('input', renderLLMProviderModels);
+        if (typeof applyLLMProviderStaticText === 'function') applyLLMProviderStaticText();
+    };
+
+    const __renderLLMProviderUIOverrideBase = renderLLMProviderUI;
+    renderLLMProviderUI = function () {
+        __renderLLMProviderUIOverrideBase();
+        syncProviderBoundSelectors();
+    };
+
+    const __selectLLMProviderBase = selectLLMProvider;
+    selectLLMProvider = function (providerId) {
+        __selectLLMProviderBase(providerId);
+        const providerState = getProviderCatalogState(providerId);
+        providerState.catalogVisible = false;
+        const searchInput = document.getElementById('provider-model-search');
+        if (searchInput) searchInput.value = '';
+        renderLLMProviderModels();
+    };
+
+    function collapseProviderCatalog(providerId) {
+        const providerState = getProviderCatalogState(providerId);
+        providerState.catalogVisible = false;
+        providerState.isFetching = false;
+        const searchInput = document.getElementById('provider-model-search');
+        if (searchInput) searchInput.value = '';
+    }
+
+    function setCustomProviderModelInputVisible(visible) {
+        const row = document.getElementById('provider-model-custom-row');
+        if (!row) return;
+        row.classList.toggle('is-collapsed', !visible);
+    }
+
+    const __addProviderModelBase = addProviderModel;
+    addProviderModel = function () {
+        const input = document.getElementById('model-input');
+        const provider = getSelectedLLMProvider();
+        if (provider && input) {
+            input.value = normalizeModelIdForProvider(provider, input.value || '');
+        }
+        __addProviderModelBase();
+        setCustomProviderModelInputVisible(false);
+        collapseProviderCatalog(llmProviderState.selectedProviderId);
+        renderLLMProviderModels();
+        syncProviderBoundSelectors();
+    };
+
+    const __removeProviderModelBase = removeProviderModel;
+    removeProviderModel = function (modelId) {
+        __removeProviderModelBase(modelId);
+        syncProviderBoundSelectors();
+    };
+
+    function findConfiguredProviderModel(provider, modelId) {
+        return (provider?.models || []).find((model) => model && model.model_id === modelId) || null;
+    }
+
+    function getFilteredProviderModelIds(provider) {
+        const providerState = getProviderCatalogState(provider?.id);
+        const configuredIds = getProviderModels(provider).map((model) => model.model_id).filter(Boolean);
+        const fetchedIds = Array.isArray(provider?.fetched_model_ids) ? provider.fetched_model_ids.filter(Boolean) : [];
+        const sourceIds = providerState.catalogVisible ? Array.from(new Set([...configuredIds, ...fetchedIds])) : configuredIds;
+        const keyword = (document.getElementById('provider-model-search')?.value || '').trim().toLowerCase();
+        if (!keyword) return sourceIds;
+        return sourceIds.filter((modelId) => modelId.toLowerCase().includes(keyword));
+    }
+
+    function toggleProviderModelEnabled(modelId) {
+        const provider = getSelectedLLMProvider();
+        const model = findConfiguredProviderModel(provider, modelId);
+        if (!provider || !model) return;
+        model.enabled = model.enabled === false ? true : false;
+        renderLLMProviderModels();
+        syncProviderBoundSelectors();
+    }
+
+    function addFetchedModelToProvider(modelId) {
+        const provider = getSelectedLLMProvider();
+        if (!provider || !modelId) return;
+        const model = ensureProviderModel(provider, modelId);
+        collapseProviderCatalog(provider.id);
+        llmProviderState.selectedModelId = model?.model_id || llmProviderState.selectedModelId;
+        renderLLMProviderModels();
+        syncProviderBoundSelectors();
+    }
+
+    function buildProviderModelSavePayload() {
+        return {
+            providers: (llmProviderState.providers || []).map((provider) => ({
+                ...provider,
+                models: (provider.models || []).map((model) => ({
+                    model_id: normalizeModelIdForProvider(provider, model.model_id),
+                    name: normalizeModelIdForProvider(provider, model.model_id),
+                    enabled: model.enabled !== false
+                }))
+            }))
+        };
+    }
+
+    function updateProviderModelToolbar(toolbar, providerState) {
+        if (!toolbar) return;
+        const buttons = toolbar.querySelectorAll('.provider-inline-button');
+        if (buttons[0]) {
+            buttons[0].textContent = providerState.isFetching ? '获取中...' : '获取模型列表';
+            buttons[0].disabled = providerState.isFetching;
+        }
+        if (buttons[1]) {
+            buttons[1].textContent = '自定义模型';
+        }
+    }
+
+    function getProviderModelSearchKeyword() {
+        return (document.getElementById('provider-model-search')?.value || '').trim().toLowerCase();
+    }
+
+    function renderProviderModelEmptyState(container, text) {
+        if (!container) return;
+        const empty = document.createElement('div');
+        empty.className = 'provider-model-empty';
+        empty.textContent = text;
+        container.appendChild(empty);
+    }
+
+    function createConfiguredProviderModelRow(provider, model, options = {}) {
+        const { includeTest = false } = options;
+        const displayMeta = getProviderModelDisplayMeta(provider, model || {});
+        const row = document.createElement('div');
+        row.className = `provider-model-row${model && model.enabled === false ? ' disabled' : ''}`;
+        row.title = '管理模型';
+
+        const name = document.createElement('div');
+        name.className = 'provider-model-main';
+        name.innerHTML = `
+            <span class="provider-model-name">${displayMeta.display || displayMeta.modelId}</span>
+            ${displayMeta.showRawModelId ? `<span class="provider-model-id">${displayMeta.modelId}</span>` : ''}
+        `;
+
+        const actionBar = document.createElement('div');
+        actionBar.className = 'provider-model-actions';
+
+        const enabledBtn = document.createElement('button');
+        enabledBtn.type = 'button';
+        enabledBtn.className = `provider-model-toggle${model && model.enabled === false ? ' is-disabled' : ' is-enabled'}`;
+        enabledBtn.textContent = model && model.enabled === false ? '关闭' : '启用';
+        enabledBtn.title = model && model.enabled === false ? '启用后会出现在模型下拉框中' : '关闭后将不再出现在模型下拉框中';
+        enabledBtn.onclick = (event) => {
+            event.stopPropagation();
+            toggleProviderModelEnabled(model.model_id);
+        };
+        actionBar.appendChild(enabledBtn);
+
+        if (includeTest) {
+            const testBtn = document.createElement('button');
+            testBtn.type = 'button';
+            testBtn.className = 'provider-model-set-active';
+            testBtn.textContent = '🔌';
+            testBtn.title = '测活';
+            testBtn.onclick = (event) => {
+                event.stopPropagation();
+                testProviderModel(model.model_id);
+            };
+            actionBar.appendChild(testBtn);
+        }
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'provider-model-remove';
+        removeBtn.textContent = '删除';
+        removeBtn.title = '删除模型';
+        removeBtn.onclick = (event) => {
+            event.stopPropagation();
+            removeProviderModel(model.model_id);
+        };
+        actionBar.appendChild(removeBtn);
+
+        row.appendChild(name);
+        row.appendChild(actionBar);
+        return row;
+    }
+
+    function createFetchedProviderModelRow(provider, modelId) {
+        const displayMeta = getProviderModelDisplayMeta(provider, { model_id: modelId });
+        const row = document.createElement('div');
+        row.className = 'provider-model-row';
+        row.title = '添加到当前提供商';
+
+        const name = document.createElement('div');
+        name.className = 'provider-model-main';
+        name.innerHTML = `
+            <span class="provider-model-name">${displayMeta.display || displayMeta.modelId}</span>
+            ${displayMeta.showRawModelId ? `<span class="provider-model-id">${displayMeta.modelId}</span>` : ''}
+        `;
+
+        const actionBar = document.createElement('div');
+        actionBar.className = 'provider-model-actions';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'provider-inline-button';
+        addBtn.textContent = '+';
+        addBtn.title = '添加模型';
+        addBtn.onclick = (event) => {
+            event.stopPropagation();
+            addFetchedModelToProvider(modelId);
+        };
+        actionBar.appendChild(addBtn);
+
+        row.appendChild(name);
+        row.appendChild(actionBar);
+        return row;
+    }
+
+    function createProviderListItem(provider) {
+        const item = document.createElement('div');
+        item.className = `provider-list-item${provider.id === llmProviderState.selectedProviderId ? ' active' : ''}`;
+        item.onclick = () => selectLLMProvider(provider.id);
+
+        const content = document.createElement('div');
+        content.className = 'provider-list-content';
+        content.innerHTML = `
+            <div class="provider-list-name-row">
+                <span class="provider-list-name">${getProviderDisplayName(provider)}</span>
+                ${provider.enabled === false ? '<span class="provider-list-tag">已停用</span>' : ''}
+            </div>
+            <div class="provider-list-url">${provider.api_url || '填写 API URL 后会显示在这里'}</div>
+        `;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'provider-list-delete';
+        removeBtn.textContent = '删除';
+        removeBtn.onclick = (event) => {
+            event.stopPropagation();
+            deleteLLMProvider(provider.id);
+        };
+
+        item.appendChild(content);
+        item.appendChild(removeBtn);
+        return item;
+    }
+
+    function setProviderEditorValues(provider) {
+        const disabled = !provider;
+        const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value;
+        };
+
+        const enabledEl = document.getElementById('provider-enabled');
+        if (enabledEl) enabledEl.checked = provider ? provider.enabled !== false : true;
+        setValue('provider-name', provider?.name || '');
+        setValue('api-key', provider?.api_key || '');
+        setValue('api-url', provider?.api_url || '');
+        setValue('temperature', provider?.temperature ?? 0.9);
+        if (document.getElementById('provider-model-search')) {
+            setValue('provider-model-search', '');
+        }
+
+        const title = document.getElementById('provider-editor-title');
+        if (title) title.textContent = getProviderDisplayName(provider, '未选择提供商');
+        const subtitle = document.getElementById('provider-editor-subtitle');
+        if (subtitle) subtitle.textContent = provider?.api_url || '填写 API URL 后会显示在这里';
+
+        ['provider-enabled', 'provider-name', 'api-key', 'api-url', 'temperature', 'model-input', 'provider-model-search', 'system-prompt']
+            .forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = disabled;
+            });
+    }
+
+    function showProviderModelTestDialog(result, ok) {
+        const existing = document.getElementById('providerModelTestDialog');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'providerModelTestDialog';
+        overlay.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10020;
+            padding: 24px;
+        `;
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            width: min(460px, 100%);
+            background: #ffffff;
+            color: #1f2937;
+            border-radius: 16px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+            padding: 20px;
+        `;
+
+        const statusBg = ok ? '#e8f5e9' : '#ffebee';
+        const statusColor = ok ? '#2e7d32' : '#c62828';
+        dialog.innerHTML = `
+            <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:${statusBg};color:${statusColor};font-weight:600;">
+                ${result.summary || (ok ? '测活成功' : '测活失败')}
+            </div>
+            <div style="margin-top:12px;line-height:1.7;">
+                <div><span style="color:#6b7280;">提供商：</span><b>${result.provider_name || ''}</b></div>
+                <div><span style="color:#6b7280;">模型：</span><b>${result.display || result.model_id || ''}</b></div>
+                <div><span style="color:#6b7280;">结果：</span>${result.detail || ''}</div>
+            </div>
+            <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+                <button type="button" class="provider-inline-button" id="providerModelTestDialogClose">关闭</button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) overlay.remove();
+        });
+        dialog.querySelector('#providerModelTestDialogClose')?.addEventListener('click', () => overlay.remove());
+    }
+
+    async function testProviderModel(modelId) {
+        syncCurrentLLMProviderForm();
+        const provider = getSelectedLLMProvider();
+        if (!provider || !modelId) return;
+
+        const normalizedModelId = normalizeModelIdForProvider(provider, modelId);
+        const display = formatProviderModelDisplay(provider, normalizedModelId);
+
+        try {
+            const response = await fetch('/api/config/llm/providers/models/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider_id: provider.id,
+                    provider_name: provider.name,
+                    api_key: provider.api_key,
+                    api_url: provider.api_url,
+                    model_id: normalizedModelId
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                const failure = {
+                    summary: result.summary || '测活失败',
+                    detail: result.detail || result.error || '未知错误',
+                    provider_name: provider.name || provider.id,
+                    model_id: normalizedModelId,
+                    display
+                };
+                showError(`${failure.summary}: ${failure.display}`);
+                showProviderModelTestDialog(failure, false);
+                return;
+            }
+
+            showSuccess(`${result.summary || '测活成功'}: ${result.display || display}`);
+            showProviderModelTestDialog({
+                ...result,
+                provider_name: result.provider_name || provider.name || provider.id,
+                model_id: result.model_id || normalizedModelId,
+                display: result.display || display
+            }, true);
+        } catch (error) {
+            const failure = {
+                summary: '测活失败',
+                detail: error.message || '未知错误',
+                provider_name: provider.name || provider.id,
+                model_id: normalizedModelId,
+                display
+            };
+            showError(`${failure.summary}: ${failure.display}`);
+            showProviderModelTestDialog(failure, false);
+        }
+    }
+
+    async function fetchProviderModels() {
+        syncCurrentLLMProviderForm();
+        const provider = getSelectedLLMProvider();
+        if (!provider) return;
+
+        const providerState = getProviderCatalogState(provider.id);
+        providerState.isFetching = true;
+        renderLLMProviderModels();
+
+        try {
+            const response = await fetch('/api/config/llm/providers/models/fetch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    provider_id: provider.id,
+                    provider_name: provider.name,
+                    api_key: provider.api_key,
+                    api_url: provider.api_url
+                })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error((result && result.error) || '获取模型列表失败');
+            }
+            provider.fetched_model_ids = Array.isArray(result.models) ? result.models : [];
+            providerState.catalogVisible = true;
+            showSuccess(`已获取 ${provider.fetched_model_ids.length} 个模型`);
+        } catch (error) {
+            showError(error.message || '获取模型列表失败');
+        } finally {
+            providerState.isFetching = false;
+            renderLLMProviderModels();
+        }
+    }
+
+    function focusCustomProviderModelInput() {
+        const input = document.getElementById('model-input');
+        if (input) {
+            setCustomProviderModelInputVisible(true);
+            input.focus();
+            input.select();
+        }
+    }
+
+    window.fetchProviderModels = fetchProviderModels;
+    window.focusCustomProviderModelInput = focusCustomProviderModelInput;
+    window.testProviderModel = testProviderModel;
+
+    renderLLMProviderModels = function () {
+        const provider = getSelectedLLMProvider();
+        const container = document.getElementById('provider-model-list');
+        const summaryLabel = document.getElementById('active-provider-model-label');
+        const titleLabel = document.querySelector('#llm-config .provider-models-title');
+        const toolbar = document.querySelector('#llm-config .provider-model-toolbar');
+        if (!container || !summaryLabel) return;
+
+        container.innerHTML = '';
+        if (!provider) {
+            summaryLabel.textContent = '已配置 0';
+            if (titleLabel) titleLabel.textContent = '已配置的模型';
+            return;
+        }
+
+        const providerState = getProviderCatalogState(provider.id);
+        const visibleModelIds = getFilteredProviderModelIds(provider);
+        const headerText = getProviderModelHeaderText(provider, providerState);
+
+        if (titleLabel) titleLabel.textContent = headerText.title;
+        summaryLabel.textContent = headerText.summary;
+        updateProviderModelToolbar(toolbar, providerState);
+
+        if (visibleModelIds.length === 0) {
+            renderProviderModelEmptyState(container, getProviderModelEmptyText(providerState));
+            return;
+        }
+
+        visibleModelIds.forEach((modelId) => {
+            const configured = findConfiguredProviderModel(provider, modelId);
+            if (configured) {
+                container.appendChild(createConfiguredProviderModelRow(provider, configured, { includeTest: true }));
+            } else {
+                container.appendChild(createFetchedProviderModelRow(provider, modelId));
+            }
+        });
+    };
+
+    saveBasicSettings = async function () {
+        try {
+            const pair = parseProviderModelValue(document.getElementById('vision-model-select')?.value || '');
+            const config = {
+                auto_screenshot: document.getElementById('auto-screenshot').checked,
+                use_vision_model: document.getElementById('use-vision-model').checked,
+                show_chat_box: document.getElementById('show-chat-box').checked,
+                show_model: !document.getElementById('hide-model').checked,
+                voice_barge_in: document.getElementById('voice-barge-in').checked,
+                tools_enabled: document.getElementById('tools-enabled').checked,
+                mcp_enabled: document.getElementById('mcp-enabled').checked,
+                provider_id: pair.provider_id,
+                model_id: pair.model_id
+            };
+            const response = await fetch('/api/settings/advanced', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showSuccess('基础配置已保存');
+            } else {
+                showError((result && result.error) || '基础配置保存失败');
+            }
+        } catch (error) {
+            showError('基础配置保存出错: ' + error.message);
+        }
+    };
+
+    loadBasicConfig = async function () {
+        try {
+            const response = await fetch('/api/settings/advanced');
+            if (!response.ok) return;
+            const config = await response.json();
+            _setChk('auto-screenshot', config.auto_screenshot === true);
+            _setChk('auto-close-services', config.auto_close_services === true);
+            _setChk('use-vision-model', config.use_vision_model === true);
+            _setChk('show-chat-box', config.show_chat_box === true);
+            _setChk('show-model', config.show_model === true);
+            _setChk('voice-barge-in', config.voice_barge_in === true);
+            _setChk('tools-enabled', config.tools_enabled === true);
+            _setChk('mcp-enabled', config.mcp_enabled === true);
+            fillProviderModelSelect(
+                'vision-model-select',
+                `${config.provider_id || ''}|${config.model_id || ''}`,
+                true,
+                normalizeBackendModelOptions(config.model_options, true)
+            );
+            const visionSelect = document.getElementById('vision-model-select');
+            if (visionSelect) {
+                visionSelect.dataset.selectedValue = visionSelect.value;
+            }
+        } catch (error) {
+            console.error('loadBasicConfig failed:', error);
+        }
+    };
+
+    saveDialogSettings = async function () {
+        try {
+            const pair = parseProviderModelValue(document.getElementById('dialog-model-select')?.value || '');
+            const config = {
+                intro_text: document.getElementById('intro-text').value,
+                max_messages: parseInt(document.getElementById('max-messages').value) || 30,
+                enable_limit: document.getElementById('enable-limit').checked,
+                persistent_history: document.getElementById('persistent-history').checked,
+                provider_id: pair.provider_id,
+                model_id: pair.model_id,
+                tts_enabled: document.getElementById('tts-enabled').checked,
+                asr_enabled: document.getElementById('asr-enabled').checked,
+                voice_barge_in: document.getElementById('voice-barge-in').checked,
+                show_chat_box: document.getElementById('show-chat-box').checked
+            };
+            const response = await fetch('/api/settings/dialog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                showSuccess('对话配置已保存');
+                document.getElementById('dialog-model-select').dataset.selectedValue = document.getElementById('dialog-model-select').value;
+            } else {
+                showError((result && result.error) || '对话配置保存失败');
+            }
+        } catch (error) {
+            showError('对话配置保存出错: ' + error.message);
+        }
+    };
+
+    loadDialogConfig = async function () {
+        try {
+            const response = await fetch('/api/settings/dialog');
+            if (!response.ok) return;
+            const config = await response.json();
+            document.getElementById('intro-text').value = config.intro_text || '';
+            document.getElementById('max-messages').value = config.max_messages || 30;
+            document.getElementById('enable-limit').checked = config.enable_limit === true;
+            document.getElementById('persistent-history').checked = config.persistent_history === true;
+            document.getElementById('tts-enabled').checked = config.tts_enabled === true;
+            document.getElementById('asr-enabled').checked = config.asr_enabled === true;
+            document.getElementById('voice-barge-in').checked = config.voice_barge_in === true;
+            document.getElementById('show-chat-box').checked = config.show_chat_box === true;
+            fillProviderModelSelect(
+                'dialog-model-select',
+                `${config.provider_id || ''}|${config.model_id || ''}`,
+                false,
+                normalizeBackendModelOptions(config.model_options, false)
+            );
+        } catch (error) {
+            console.error('loadDialogConfig failed:', error);
+        }
+    };
+
+    loadAllSettings = async function () {
+        try { await loadConfigs(); } catch (e) { console.error('loadConfigs failed:', e); }
+        try { await loadLLMConfig(); } catch (e) { console.error('loadLLMConfig failed:', e); }
+        try { await loadBasicConfig(); } catch (e) { console.error('loadBasicConfig failed:', e); }
+        try { await loadDialogConfig(); } catch (e) { console.error('loadDialogConfig failed:', e); }
+        try { await loadPersonaSettings(); } catch (e) { console.error('loadPersonaSettings failed:', e); }
+        try { await loadCloudSettings(); } catch (e) { console.error('loadCloudSettings failed:', e); }
+        try { await loadUISettings(); } catch (e) { console.error('loadUISettings failed:', e); }
+    };
+
+    function readPluginFieldValue(field, path) {
+        if (field && field.type === 'object') {
+            const value = {};
+            Object.entries(field.fields || {}).forEach(([nestedKey, nestedField]) => {
+                value[nestedKey] = readPluginFieldValue(nestedField, `${path}.${nestedKey}`);
+            });
+            return value;
+        }
+        const input = document.getElementById(getPluginFieldId(path));
+        if (!input) return field?.value !== undefined ? field.value : field?.default;
+        if (field.type === 'bool') return !!input.checked;
+        if (field.type === 'int') return parseInt(input.value, 10) || field.default || 0;
+        if (field.type === 'float') return parseFloat(input.value) || field.default || 0;
+        return input.value;
+    }
+
+    createConfigField = function createConfigField(key, field, parentPath = '') {
+        const path = parentPath ? `${parentPath}.${key}` : key;
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'config-field';
+        fieldDiv.dataset.fieldKey = path;
+
+        if (field && field.type === 'object') {
+            fieldDiv.innerHTML = `
+                <h4>${field.title || key}</h4>
+                <div class="field-description">${field.description || ''}</div>
+                <div class="nested-config"></div>
+            `;
+            const nestedContainer = fieldDiv.querySelector('.nested-config');
+            Object.entries(field.fields || {}).forEach(([nestedKey, nestedField]) => {
+                nestedContainer.appendChild(createConfigField(nestedKey, nestedField, path));
+            });
+            return fieldDiv;
+        }
+
+        const inputId = getPluginFieldId(path);
+        const currentValue = field && field.value !== undefined ? field.value : (field ? field.default : '');
+        let inputElement;
+        switch ((field && field.type) || 'string') {
+            case 'text':
+            case 'textarea':
+                inputElement = document.createElement('textarea');
+                inputElement.rows = 3;
+                inputElement.value = currentValue || '';
+                break;
+            case 'int':
+            case 'float':
+                inputElement = document.createElement('input');
+                inputElement.type = 'number';
+                inputElement.step = field.type === 'float' ? '0.1' : '1';
+                inputElement.value = currentValue ?? '';
+                break;
+            case 'bool':
+                inputElement = document.createElement('input');
+                inputElement.type = 'checkbox';
+                inputElement.checked = !!currentValue;
+                break;
+            case 'password':
+                inputElement = document.createElement('input');
+                inputElement.type = 'password';
+                inputElement.value = currentValue || '';
+                break;
+            case 'llm_provider': {
+                inputElement = document.createElement('select');
+                const empty = document.createElement('option');
+                empty.value = '';
+                empty.textContent = '跟随全局对话模型';
+                inputElement.appendChild(empty);
+                getPluginProviderOptions().forEach((option) => {
+                    const el = document.createElement('option');
+                    el.value = option.provider_id;
+                    el.textContent = option.label;
+                    inputElement.appendChild(el);
+                });
+                inputElement.value = currentValue || '';
+                inputElement.dataset.pluginFieldType = 'llm_provider';
+                inputElement.dataset.currentValue = currentValue || '';
+                inputElement.addEventListener('change', function () {
+                    this.dataset.currentValue = this.value;
+                    refreshPluginProviderBoundFields();
+                });
+                break;
+            }
+            case 'llm_model': {
+                inputElement = document.createElement('select');
+                inputElement.dataset.pluginFieldType = 'llm_model';
+                inputElement.dataset.providerField = field.provider_field || `${parentPath}.provider_id`;
+                inputElement.dataset.currentValue = currentValue || '';
+                inputElement.addEventListener('change', function () { this.dataset.currentValue = this.value; });
+                break;
+            }
+            default:
+                inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.value = currentValue || '';
+                break;
+        }
+
+        inputElement.id = inputId;
+        inputElement.name = path;
+        fieldDiv.innerHTML = `
+            <h4>${field.title || key}</h4>
+            <div class="field-description">${field.description || ''}</div>
+        `;
+        fieldDiv.appendChild(inputElement);
+        return fieldDiv;
+    };
+
+    renderPluginConfigForm = function renderPluginConfigForm(config) {
+        const fieldsContainer = document.getElementById('pluginConfigFields');
+        fieldsContainer.innerHTML = '';
+        window.currentPluginConfig = JSON.parse(JSON.stringify(config));
+        const keys = window.currentPluginConfigKeys || Object.keys(config);
+        keys.forEach((key) => {
+            if (Object.prototype.hasOwnProperty.call(config, key)) {
+                fieldsContainer.appendChild(createConfigField(key, config[key], ''));
+            }
+        });
+        refreshPluginProviderBoundFields();
+    };
+
+    collectConfigFormData = function collectConfigFormData() {
+        const updatedConfig = {};
+        const keys = window.currentPluginConfigKeys || Object.keys(window.currentPluginConfig || {});
+        keys.forEach((key) => {
+            const field = window.currentPluginConfig[key];
+            if (!field) return;
+            updatedConfig[key] = readPluginFieldValue(field, key);
+        });
+        return updatedConfig;
+    };
+
+    resetFieldToDefault = function resetFieldToDefault(key, field, parentPath = '') {
+        const path = parentPath ? `${parentPath}.${key}` : key;
+        if (field && field.type === 'object') {
+            Object.entries(field.fields || {}).forEach(([nestedKey, nestedField]) => {
+                resetFieldToDefault(nestedKey, nestedField, path);
+            });
+            return;
+        }
+        const input = document.getElementById(getPluginFieldId(path));
+        if (!input) return;
+        if (field.type === 'bool') {
+            input.checked = !!field.default;
+        } else {
+            input.value = field.default ?? '';
+        }
+        if (field.type === 'llm_model' || field.type === 'llm_provider') {
+            input.dataset.currentValue = field.default || '';
+        }
+    };
+
+    resetPluginConfig = function resetPluginConfig() {
+        if (!window.currentPluginConfig || !window.currentPluginPath) return;
+        Object.entries(window.currentPluginConfig).forEach(([key, field]) => {
+            resetFieldToDefault(key, field, '');
+        });
+        refreshPluginProviderBoundFields();
+        addLog('插件配置已重置为默认值', 'info', 'system');
+    };
+})();

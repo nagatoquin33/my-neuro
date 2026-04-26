@@ -4,10 +4,12 @@ const fs = require('fs')
 const { HttpServer } = require('./js/services/http-server')
 const { ModelPathUpdater } = require('./js/model/model-path-updater')
 const { ShortcutManager } = require('./js/shortcut-manager')
+const { persistProviderStore } = require('./js/core/llm-provider-store')
 const screenshot = require('screenshot-desktop');
 
 // 添加配置文件路径
 const configPath = path.join(app.getAppPath(), 'config.json');
+const baseDir = app.getAppPath();
 
 // Live2D模型优先级配置（Python程序会修改这个列表来切换模型）
 const priorityFolders = ['肥牛', '肥牛v2.3', 'Hiyouri', 'Default', 'Main'];
@@ -29,11 +31,11 @@ function createWindow () {
     }
 
     const screenExtend = config.ui?.screen_extend || { extend: false, left: false, right: true };
-    
+
     // 获取所有显示器信息
     const displays = screen.getAllDisplays()
     const primaryDisplay = screen.getPrimaryDisplay();
-    
+
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
     if (screenExtend.extend) {
@@ -73,15 +75,15 @@ function createWindow () {
         maxX = primaryDisplay.bounds.x + primaryDisplay.bounds.width;
         maxY = primaryDisplay.bounds.y + primaryDisplay.bounds.height;
     }
-    
+
     const totalWidth = maxX - minX
     const totalHeight = maxY - minY
-    
+
     console.log(`=== 窗口创建信息 ===`)
     console.log(`总边界: minX=${minX}, minY=${minY}, maxX=${maxX}, maxY=${maxY}`)
     console.log(`计算的窗口尺寸: ${totalWidth}x${totalHeight}`)
     console.log(`窗口位置: (${minX}, ${minY})`)
-    
+
     const win = new BrowserWindow({
         x: minX,
         y: minY,
@@ -109,18 +111,18 @@ function createWindow () {
     win.setAlwaysOnTop(true, 'screen-saver')
     win.setIgnoreMouseEvents(true, { forward: true });
     win.setMenu(null)
-    
+
     // 立即验证窗口尺寸
     const immediateBounds = win.getBounds()
     console.log(`窗口创建后立即尺寸: ${immediateBounds.width}x${immediateBounds.height}`)
     console.log(`窗口创建后立即位置: (${immediateBounds.x}, ${immediateBounds.y})`)
-    
+
     // 延迟验证窗口实际尺寸
     setTimeout(() => {
         const actualBounds = win.getBounds()
         console.log(`窗口实际尺寸: ${actualBounds.width}x${actualBounds.height}`)
         console.log(`窗口实际位置: (${actualBounds.x}, ${actualBounds.y})`)
-        
+
         // 如果尺寸不匹配，尝试强制设置
         if (actualBounds.width !== totalWidth || actualBounds.height !== totalHeight) {
             console.log(`⚠️ 窗口尺寸不匹配！尝试强制设置为 ${totalWidth}x${totalHeight}`)
@@ -130,7 +132,7 @@ function createWindow () {
                 width: totalWidth,
                 height: totalHeight
             })
-            
+
             setTimeout(() => {
                 const finalBounds = win.getBounds()
                 console.log(`强制设置后尺寸: ${finalBounds.width}x${finalBounds.height}`)
@@ -138,7 +140,7 @@ function createWindow () {
         }
         console.log(`======================`)
     }, 100)
-    
+
     win.loadFile('index.html')
     win.on('minimize', (event) => {
         event.preventDefault()
@@ -151,8 +153,8 @@ function createWindow () {
     setInterval(() => {
         ensureTopMost(win)
     }, 1000)
-    
-    
+
+
     return win
 }
 
@@ -214,13 +216,13 @@ ipcMain.on('window-move', (event, { mouseX, mouseY }) => {
     // 动态调整窗口大小以覆盖当前位置所在的所有屏幕
     const displays = screen.getAllDisplays()
     const winBounds = win.getBounds()
-    
+
     // 找出窗口覆盖的所有显示器
     let minX = winBounds.x
     let minY = winBounds.y
     let maxX = winBounds.x + winBounds.width
     let maxY = winBounds.y + winBounds.height
-    
+
     displays.forEach(display => {
         const { x, y, width, height } = display.bounds
         // 检查窗口是否与这个显示器有交集
@@ -232,10 +234,10 @@ ipcMain.on('window-move', (event, { mouseX, mouseY }) => {
             maxY = Math.max(maxY, y + height)
         }
     })
-    
+
     const newWidth = maxX - minX
     const newHeight = maxY - minY
-    
+
     // 如果需要调整窗口大小
     if (newWidth !== winBounds.width || newHeight !== winBounds.height || minX !== winBounds.x || minY !== winBounds.y) {
         win.setBounds({
@@ -286,7 +288,8 @@ ipcMain.handle('save-config', async (event, configData) => {
         }
 
         // 保存新配置
-        fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8');
+        const preparedConfig = JSON.parse(JSON.stringify(configData));
+        persistProviderStore(baseDir, configPath, preparedConfig);
 
         // 通知用户需要重启应用
         const result = await dialog.showMessageBox({
@@ -314,8 +317,9 @@ ipcMain.handle('save-config', async (event, configData) => {
 // 修改获取配置的IPC处理器，假设配置文件总是存在
 ipcMain.handle('get-config', async (event) => {
     try {
-        const configData = fs.readFileSync(configPath, 'utf8');
-        return { success: true, config: JSON.parse(configData) };
+        const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        persistProviderStore(baseDir, configPath, configData);
+        return { success: true, config: configData };
     } catch (error) {
         console.error('获取配置失败:', error);
         return { success: false, error: error.message };
